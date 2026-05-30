@@ -10,6 +10,7 @@ import type {
   JourneyAlert,
   JourneyUpdate,
   RouteSegment,
+  JourneyInstruction,
 } from '../../shared/types';
 import {
   purchaseTicket as apiPurchaseTicket,
@@ -25,6 +26,10 @@ interface JourneyState {
   liveStatus: LiveStatus | null;
   alerts: JourneyAlert[];
   segments: RouteSegment[];
+  instructions: JourneyInstruction[];
+
+  // User Settings
+  notificationsEnabled: boolean;
 
   // Ticket history
   tickets: TicketData[];
@@ -42,9 +47,11 @@ interface JourneyState {
   stopJourneyTracking: () => void;
   refreshJourney: (journeyId: string) => Promise<void>;
   clearActiveJourney: () => void;
+  toggleNotifications: () => void;
 }
 
 let activeWs: WebSocket | null = null;
+let activeInterval: ReturnType<typeof setInterval> | null = null;
 
 export const useJourneyStore = create<JourneyState>((set, get) => ({
   activeTicket: null,
@@ -52,10 +59,12 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
   liveStatus: null,
   alerts: [],
   segments: [],
+  instructions: [],
   tickets: [],
   wsConnected: false,
   purchasing: false,
   loadingJourney: false,
+  notificationsEnabled: true,
 
   purchaseTicket: async (source, destination, passengers) => {
     set({ purchasing: true });
@@ -125,8 +134,24 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
       activeWs.close();
       activeWs = null;
     }
+    if (activeInterval) {
+      clearInterval(activeInterval);
+      activeInterval = null;
+    }
 
     set({ activeJourneyId: journeyId });
+
+    // Initial fetch to immediately populate the single source of truth
+    get().refreshJourney(journeyId);
+
+    // Setup centralized fallback polling
+    activeInterval = setInterval(() => {
+      // Only poll if WS is disconnected to save network/battery, 
+      // or always poll as a solid fallback. We'll poll every 10s.
+      if (!get().wsConnected) {
+        get().refreshJourney(journeyId);
+      }
+    }, 10000);
 
     try {
       activeWs = connectJourneyWebSocket(
@@ -136,7 +161,8 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
           if (update.type === 'journey_update') {
             set({
               liveStatus: update.live_status || null,
-              alerts: update.alerts || [],
+              alerts: get().notificationsEnabled ? (update.alerts || []) : [],
+              instructions: update.instructions || [],
             });
           } else if (update.type === 'journey_complete') {
             set({
@@ -164,6 +190,10 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
       activeWs.close();
       activeWs = null;
     }
+    if (activeInterval) {
+      clearInterval(activeInterval);
+      activeInterval = null;
+    }
     set({ wsConnected: false });
   },
 
@@ -173,8 +203,9 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
       const data = await getJourney(journeyId);
       set({
         liveStatus: data.live_status,
-        alerts: data.alerts,
+        alerts: get().notificationsEnabled ? data.alerts : [],
         segments: data.journey.segments,
+        instructions: data.instructions || [],
         loadingJourney: false,
       });
     } catch {
@@ -187,13 +218,22 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
       activeWs.close();
       activeWs = null;
     }
+    if (activeInterval) {
+      clearInterval(activeInterval);
+      activeInterval = null;
+    }
     set({
       activeTicket: null,
       activeJourneyId: null,
       liveStatus: null,
       alerts: [],
       segments: [],
+      instructions: [],
       wsConnected: false,
     });
+  },
+
+  toggleNotifications: () => {
+    set((state) => ({ notificationsEnabled: !state.notificationsEnabled }));
   },
 }));

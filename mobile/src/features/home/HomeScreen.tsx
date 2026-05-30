@@ -11,6 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, spacing, shadows, borderRadius } from '../../navigation/theme';
+import { useJourneyStore } from '../../data/store/journeyStore';
 import type { RootStackParamList } from '../../shared/types';
 
 const { width } = Dimensions.get('window');
@@ -24,13 +25,14 @@ const recentTrips = [
 
 export default function HomeScreen() {
   const navigation = useNavigation<NavProp>();
+  const { activeTicket, activeJourneyId } = useJourneyStore();
 
   const travelItems = [
     { icon: '🎫', label: 'Top Up', route: null },
     { icon: '🎟️', label: 'QR Tickets', route: 'QRTickets' as const },
     { icon: '📱', label: 'QR Pass', route: null },
     { icon: '🕐', label: 'Time Table', route: null },
-    { icon: '🗺️', label: 'Map', route: null },
+    { icon: '🗺️', label: 'Map', route: 'MetroMap' as const },
     { icon: '💰', label: 'Fare Info', route: null },
     { icon: '🎧', label: 'Support', route: null },
   ];
@@ -56,6 +58,29 @@ export default function HomeScreen() {
             </View>
           </SafeAreaView>
         </View>
+
+        {/* Active Journey Banner */}
+        {activeTicket && activeJourneyId && (
+          <TouchableOpacity
+            style={styles.activeJourneyBanner}
+            onPress={() => navigation.navigate('TicketDetails', {
+              ticketData: activeTicket,
+              journeyId: activeJourneyId,
+            })}
+            activeOpacity={0.9}
+          >
+            <View style={styles.activeJourneyIconWrap}>
+              <Text style={styles.activeJourneyIcon}>🚆</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.activeJourneyTitle}>Active Journey</Text>
+              <Text style={styles.activeJourneyText}>
+                {activeTicket.source} → {activeTicket.destination}
+              </Text>
+            </View>
+            <Text style={styles.activeJourneyArrow}>›</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Travel Grid Section */}
         <View style={styles.travelSection}>
@@ -143,6 +168,27 @@ const styles = StyleSheet.create({
   userName: { color: colors.neutral[0], fontSize: 16, fontWeight: '600', marginLeft: 12 },
   headerIcons: { flexDirection: 'row', gap: 16 },
   headerIcon: { color: colors.neutral[0], fontSize: 18 },
+  activeJourneyBanner: {
+    backgroundColor: colors.surface,
+    marginHorizontal: spacing.lg,
+    marginTop: -20,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    ...shadows.md,
+    borderWidth: 1,
+    borderColor: `${colors.purple[600]}30`,
+    zIndex: 10,
+  },
+  activeJourneyIconWrap: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: `${colors.purple[600]}15`,
+    alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
+  },
+  activeJourneyIcon: { fontSize: 20 },
+  activeJourneyTitle: { fontSize: 12, fontWeight: '700', color: colors.purple[600], marginBottom: 2 },
+  activeJourneyText: { fontSize: 14, fontWeight: '600', color: colors.text.primary },
+  activeJourneyArrow: { fontSize: 24, color: colors.purple[600], marginLeft: 8 },
   travelSection: {
     backgroundColor: colors.background, borderTopLeftRadius: 24,
     borderTopRightRadius: 24, marginTop: -24,

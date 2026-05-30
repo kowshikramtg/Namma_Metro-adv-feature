@@ -27,6 +27,7 @@ from data_providers import get_schedule_provider
 from services.schedule_engine import ScheduleEngine
 from services.train_simulator import TrainSimulator
 from services.alert_engine import AlertEngine
+from services.instruction_engine import InstructionEngine
 from services.ai_interfaces import PlaceholderCrowdEstimator
 
 # ── Logging ──
@@ -239,11 +240,24 @@ async def get_journey(journey_id: str):
         start_time, journey["segments"]
     )
     alerts = AlertEngine.generate_alerts(live_status, journey["segments"])
+    
+    current_seg_idx = live_status.get("current_segment", 0)
+    current_seg = journey["segments"][current_seg_idx] if current_seg_idx < len(journey["segments"]) else journey["segments"][-1]
+    
+    next_trains = await schedule_engine.get_next_trains(
+        current_seg.get("from_station_id", ""), 
+        current_seg.get("line", "purple")
+    )
+
+    instructions = InstructionEngine.generate_instructions(
+        journey["segments"], live_status, start_time, next_trains=next_trains
+    )
 
     return {
         "journey": journey,
         "live_status": live_status,
         "alerts": alerts,
+        "instructions": instructions,
     }
 
 
@@ -338,11 +352,24 @@ async def journey_websocket(websocket: WebSocket, journey_id: str):
                 start_time, journey["segments"]
             )
             alerts = AlertEngine.generate_alerts(live_status, journey["segments"])
+            
+            current_seg_idx = live_status.get("current_segment", 0)
+            current_seg = journey["segments"][current_seg_idx] if current_seg_idx < len(journey["segments"]) else journey["segments"][-1]
+            
+            next_trains = await schedule_engine.get_next_trains(
+                current_seg.get("from_station_id", ""), 
+                current_seg.get("line", "purple")
+            )
+
+            instructions = InstructionEngine.generate_instructions(
+                journey["segments"], live_status, start_time, next_trains=next_trains
+            )
 
             await websocket.send_json({
                 "type": "journey_update",
                 "live_status": live_status,
                 "alerts": alerts,
+                "instructions": instructions,
                 "timestamp": datetime.now().isoformat(),
             })
 

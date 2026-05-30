@@ -6,10 +6,11 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
 } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Header } from '../../shared/components/Header';
 import { useJourneyStore } from '../../data/store/journeyStore';
 import { getJourney } from '../../data/api/metroApi';
@@ -17,34 +18,16 @@ import { colors, spacing, borderRadius, shadows } from '../../navigation/theme';
 import type { RootStackParamList, RouteSegment, LiveStatus } from '../../shared/types';
 
 type RouteP = RouteProp<RootStackParamList, 'JourneyTimeline'>;
+type NavProp = NativeStackNavigationProp<RootStackParamList, 'JourneyTimeline'>;
 
 export default function JourneyTimelineScreen() {
   const route = useRoute<RouteP>();
+  const navigation = useNavigation<NavProp>();
   const { journeyId, ticketData } = route.params;
-  const { liveStatus, segments: storeSegments } = useJourneyStore();
-
-  const [segments, setSegments] = useState<RouteSegment[]>(
-    ticketData.route?.segments || []
-  );
-  const [status, setStatus] = useState<LiveStatus | null>(null);
-
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const data = await getJourney(journeyId);
-        setSegments(data.journey.segments);
-        setStatus(data.live_status);
-      } catch {
-        setSegments(ticketData.route?.segments || []);
-      }
-    };
-    fetch();
-    const interval = setInterval(fetch, 10000);
-    return () => clearInterval(interval);
-  }, [journeyId]);
-
-  const activeStatus = liveStatus || status;
-  const activeSegments = storeSegments.length > 0 ? storeSegments : segments;
+  const { liveStatus: activeStatus, segments: storeSegments } = useJourneyStore();
+  
+  // Strict Single Source of Truth from Store
+  const activeSegments = storeSegments.length > 0 ? storeSegments : (ticketData.route?.segments || []);
 
   const totalTime = ticketData.route?.total_time_minutes ?? 0;
   const interchanges = ticketData.route?.interchange_count ?? 0;
@@ -202,6 +185,14 @@ export default function JourneyTimelineScreen() {
           </View>
         </View>
 
+        {/* View on Map */}
+        <TouchableOpacity
+          style={styles.mapButton}
+          onPress={() => navigation.navigate('JourneyVisualization', { journeyId, ticketData })}
+        >
+          <Text style={styles.mapButtonText}>🗺️ View on Map</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>
@@ -299,4 +290,12 @@ const styles = StyleSheet.create({
   destinationIcon: { fontSize: 28, marginRight: spacing.md },
   destinationTitle: { fontSize: 16, fontWeight: '700', color: colors.green[700] },
   destinationSub: { fontSize: 12, color: colors.text.secondary, marginTop: 2 },
+
+  // ── Map Button ──
+  mapButton: {
+    backgroundColor: colors.surface, borderRadius: borderRadius.md,
+    padding: spacing.lg, marginTop: spacing.md, alignItems: 'center',
+    ...shadows.sm, borderWidth: 1, borderColor: `${colors.purple[600]}30`,
+  },
+  mapButtonText: { fontSize: 14, fontWeight: '700', color: colors.purple[600] },
 });

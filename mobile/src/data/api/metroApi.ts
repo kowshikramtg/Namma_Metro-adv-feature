@@ -13,8 +13,10 @@ import type {
 } from '../../shared/types';
 
 // Configure backend URL — update for your network
-const API_BASE = 'http://172.20.4.221:8000';
-const WS_BASE = 'ws://172.20.4.221:8000';
+// const API_BASE = 'http://172.20.4.221:8000';
+// const WS_BASE = 'ws://172.20.4.221:8000';
+const API_BASE = 'http://localhost:8000';
+const WS_BASE = 'ws://localhost:8000';
 
 const TIMEOUT_MS = 8000;
 

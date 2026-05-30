@@ -23,7 +23,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { Header } from '../../shared/components/Header';
 import { useJourneyStore } from '../../data/store/journeyStore';
 import { colors, spacing, borderRadius, shadows } from '../../navigation/theme';
-import type { RootStackParamList, LiveStatus, JourneyAlert, RouteSegment } from '../../shared/types';
+import type { RootStackParamList, LiveStatus, JourneyAlert, RouteSegment, JourneyInstruction } from '../../shared/types';
 import { getJourney } from '../../data/api/metroApi';
 
 type RouteP = RouteProp<RootStackParamList, 'TicketDetails'>;
@@ -35,141 +35,92 @@ const { width } = Dimensions.get('window');
 // This is the core value-add. Shows only what matters RIGHT NOW.
 
 interface CompanionProps {
-  segments: RouteSegment[];
-  liveStatus: LiveStatus | null;
-  alerts: JourneyAlert[];
+  instruction?: JourneyInstruction;
+  notificationsEnabled: boolean;
+  onToggleNotifications: () => void;
   onViewJourney: () => void;
 }
 
 const JourneyCompanionCard: React.FC<CompanionProps> = ({
-  segments, liveStatus, alerts, onViewJourney,
+  instruction, notificationsEnabled, onToggleNotifications, onViewJourney,
 }) => {
-  if (!segments || segments.length === 0) return null;
+  if (!instruction) return null;
 
-  const currentSeg = liveStatus?.current_segment ?? 0;
-  const status = liveStatus?.status ?? 'boarding';
-  const segment = segments[currentSeg] || segments[0];
-  const lineColor = segment.line === 'green' ? colors.green[500] : colors.purple[600];
-  const lineName = segment.line === 'green' ? 'Green Line' : 'Purple Line';
-
-  // Determine what to show based on journey status
-  const getStatusDisplay = () => {
-    switch (status) {
-      case 'boarding':
-        return { text: 'Board Now', color: colors.purple[600], icon: '🚇' };
-      case 'in_progress':
-        return { text: 'In Transit', color: colors.status.info, icon: '🚂' };
-      case 'approaching_interchange':
-        return { text: 'Interchange Ahead', color: colors.status.warning, icon: '🔄' };
-      case 'approaching_destination':
-        return { text: 'Arriving Soon', color: colors.status.success, icon: '📍' };
-      case 'completed':
-        return { text: 'Journey Complete', color: colors.status.success, icon: '✅' };
-      default:
-        return { text: 'On Time', color: colors.status.success, icon: '●' };
-    }
-  };
-
-  const statusDisplay = getStatusDisplay();
-
-  // Get the most relevant alert
-  const primaryAlert = alerts.length > 0 ? alerts[0] : null;
-
-  // Compute minutes until arrival
-  const remainingMin = liveStatus?.remaining_minutes ?? segment.travel_time_minutes ?? 0;
-  const nextTrainInfo = segment.departure_time || '--:--';
+  const lineColor = instruction.line.toLowerCase() === 'green' ? colors.green[500] : colors.purple[600];
+  const isCompleted = instruction.stage === 'ARRIVED';
 
   return (
     <View style={[styles.companionCard, { borderTopColor: lineColor }]}>
       {/* Header */}
       <View style={styles.companionHeader}>
         <View style={styles.companionLive}>
-          <View style={[styles.liveDot, { backgroundColor: status === 'completed' ? colors.status.success : '#F44336' }]} />
+          <View style={[styles.liveDot, { backgroundColor: isCompleted ? colors.status.success : '#F44336' }]} />
           <Text style={styles.companionTitle}>Journey Companion</Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: `${statusDisplay.color}15` }]}>
-          <Text style={[styles.statusText, { color: statusDisplay.color }]}>
-            {statusDisplay.icon} {statusDisplay.text}
+        <TouchableOpacity 
+          style={[styles.statusBadge, { backgroundColor: notificationsEnabled ? `${colors.purple[600]}15` : colors.neutral[200] }]}
+          onPress={onToggleNotifications}
+        >
+          <Text style={[styles.statusText, { color: notificationsEnabled ? colors.purple[600] : colors.text.secondary }]}>
+            {notificationsEnabled ? '🔔 ON' : '🔕 OFF'}
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
-      {/* Primary Info - What matters NOW */}
-      {status !== 'completed' ? (
-        <View style={styles.companionBody}>
-          {/* Next Train / Current Position */}
+      <View style={styles.companionBody}>
+        {/* Instruction Title & Description */}
+        <View style={{ marginBottom: spacing.md }}>
+          <Text style={styles.instructionTitle}>{instruction.title}</Text>
+          <Text style={styles.instructionDesc}>{instruction.description}</Text>
+        </View>
+
+        {!isCompleted && (
           <View style={styles.infoRow}>
+            {/* Primary Detail */}
             <View style={styles.infoBlock}>
-              <Text style={styles.infoLabel}>
-                {status === 'boarding' ? 'Next Train' : 'Current'}
-              </Text>
-              <Text style={[styles.infoValue, { color: lineColor }]}>{lineName}</Text>
-              {status === 'boarding' && (
-                <Text style={styles.infoSub}>{nextTrainInfo}</Text>
-              )}
-              {status !== 'boarding' && liveStatus?.current_station && (
-                <Text style={styles.infoSub}>{liveStatus.current_station}</Text>
-              )}
+              <Text style={styles.infoLabel}>Station / Location</Text>
+              <Text style={styles.infoValue}>{instruction.station}</Text>
+              {instruction.platform ? (
+                <Text style={styles.infoSub}>Platform {instruction.platform}</Text>
+              ) : null}
             </View>
 
+            {/* Train Info */}
             <View style={styles.infoBlock}>
-              <Text style={styles.infoLabel}>
-                {status === 'boarding' ? 'Board At' : 'Reach'}
-              </Text>
-              <Text style={styles.infoValue}>
-                {status === 'boarding' ? segment.from_station : segment.to_station}
-              </Text>
-              <Text style={styles.infoSub}>{segment.arrival_time || '--:--'}</Text>
+              <Text style={styles.infoLabel}>Train</Text>
+              <Text style={[styles.infoValue, { color: lineColor }]}>{instruction.line} Line</Text>
+              <Text style={styles.infoSub}>To {instruction.direction}</Text>
             </View>
           </View>
+        )}
 
-          {/* Interchange info (only if applicable) */}
-          {segments.length > 1 && currentSeg < segments.length - 1 && (
-            <View style={styles.interchangeRow}>
-              <Text style={styles.interchangeIcon}>🔄</Text>
-              <View>
-                <Text style={styles.interchangeText}>
-                  Interchange: {segments[currentSeg + 1].line === 'green' ? 'Green Line' : 'Purple Line'}
-                </Text>
-                <Text style={styles.interchangeSub}>at Majestic · 2 min walk</Text>
-              </View>
-            </View>
-          )}
-
-          {/* ETA */}
+        {/* ETA */}
+        {!isCompleted && (
           <View style={styles.etaRow}>
-            <Text style={styles.etaLabel}>Destination ETA</Text>
-            <Text style={styles.etaValue}>
-              {Math.ceil(remainingMin)} min
-            </Text>
-          </View>
-
-          {/* Alert banner */}
-          {primaryAlert && (
-            <View style={[styles.alertBanner, { backgroundColor: `${primaryAlert.color}10`, borderLeftColor: primaryAlert.color }]}>
-              <Text style={styles.alertIcon}>{primaryAlert.icon}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.alertMessage, { color: primaryAlert.color }]}>
-                  {primaryAlert.message}
-                </Text>
-                {primaryAlert.detail ? (
-                  <Text style={styles.alertDetail}>{primaryAlert.detail}</Text>
-                ) : null}
-              </View>
+            <Text style={styles.etaLabel}>ETA / Wait Time</Text>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={styles.etaValue}>
+                {instruction.eta_minutes} min
+              </Text>
+              <Text style={styles.etaSub}>
+                {instruction.scheduled_time.split('T')[1]?.substring(0, 5) || '--:--'}
+              </Text>
             </View>
-          )}
-        </View>
-      ) : (
-        <View style={styles.completedBody}>
-          <Text style={styles.completedIcon}>🎯</Text>
-          <Text style={styles.completedText}>You have reached your destination!</Text>
-          <Text style={styles.completedSub}>Thank you for traveling with Namma Metro.</Text>
-        </View>
-      )}
+          </View>
+        )}
+
+        {isCompleted && (
+          <View style={styles.completedBody}>
+            <Text style={styles.completedIcon}>🎯</Text>
+            <Text style={styles.completedText}>You have reached your destination!</Text>
+            <Text style={styles.completedSub}>Thank you for traveling with Namma Metro.</Text>
+          </View>
+        )}
+      </View>
 
       {/* View Journey Button */}
       <TouchableOpacity style={styles.viewJourneyBtn} onPress={onViewJourney}>
-        <Text style={styles.viewJourneyText}>View Journey →</Text>
+        <Text style={styles.viewJourneyText}>View Complete Timeline →</Text>
       </TouchableOpacity>
     </View>
   );
@@ -184,46 +135,22 @@ export default function TicketDetailsScreen() {
 
   const {
     startJourneyTracking, stopJourneyTracking,
-    liveStatus, alerts, segments: storeSegments,
+    instructions, notificationsEnabled, toggleNotifications,
   } = useJourneyStore();
 
-  const [journeySegments, setJourneySegments] = useState<RouteSegment[]>(
-    ticketData.route?.segments || []
-  );
-  const [localStatus, setLocalStatus] = useState<LiveStatus | null>(null);
-  const [localAlerts, setLocalAlerts] = useState<JourneyAlert[]>([]);
+  // Single source of truth from store
+  const activeInstructionList = instructions.length > 0 
+    ? instructions 
+    : (ticketData.route?.segments ? [] : []);
+  const activeInstruction = activeInstructionList.find(i => i.active) || activeInstructionList[0];
 
-  // Start WebSocket tracking and also poll as fallback
   useEffect(() => {
+    // TicketDetails is the root of the journey — it manages the connection.
     startJourneyTracking(journeyId);
-
-    // Also fetch via REST for initial data
-    const fetchJourney = async () => {
-      try {
-        const data = await getJourney(journeyId);
-        setJourneySegments(data.journey.segments);
-        setLocalStatus(data.live_status);
-        setLocalAlerts(data.alerts);
-      } catch {
-        // Backend unavailable — use ticket data
-        setJourneySegments(ticketData.route?.segments || []);
-      }
-    };
-    fetchJourney();
-
-    // Poll every 10 seconds as fallback for when WebSocket isn't connected
-    const interval = setInterval(fetchJourney, 10000);
-
     return () => {
-      clearInterval(interval);
       stopJourneyTracking();
     };
-  }, [journeyId]);
-
-  // Prefer WebSocket data over REST data
-  const activeStatus = liveStatus || localStatus;
-  const activeAlerts = alerts.length > 0 ? alerts : localAlerts;
-  const activeSegments = storeSegments.length > 0 ? storeSegments : journeySegments;
+  }, [journeyId, startJourneyTracking, stopJourneyTracking]);
 
   const handleViewJourney = useCallback(() => {
     navigation.navigate('JourneyTimeline', { journeyId, ticketData });
@@ -291,9 +218,9 @@ export default function TicketDetailsScreen() {
 
         {/* Journey Companion — natural extension below the ticket */}
         <JourneyCompanionCard
-          segments={activeSegments}
-          liveStatus={activeStatus}
-          alerts={activeAlerts}
+          instruction={activeInstruction}
+          notificationsEnabled={notificationsEnabled}
+          onToggleNotifications={toggleNotifications}
           onViewJourney={handleViewJourney}
         />
 
@@ -390,6 +317,10 @@ const styles = StyleSheet.create({
   },
   etaLabel: { fontSize: 13, fontWeight: '600', color: colors.text.secondary },
   etaValue: { fontSize: 18, fontWeight: '700', color: colors.purple[600] },
+  etaSub: { fontSize: 11, color: colors.text.muted, marginTop: 2 },
+
+  instructionTitle: { fontSize: 18, fontWeight: '700', color: colors.text.primary },
+  instructionDesc: { fontSize: 13, color: colors.text.secondary, marginTop: 4 },
 
   alertBanner: {
     flexDirection: 'row', alignItems: 'center',

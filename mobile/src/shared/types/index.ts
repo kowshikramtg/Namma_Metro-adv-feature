@@ -93,10 +93,38 @@ export interface JourneyAlert {
   timestamp: string;
 }
 
+export type InstructionStage =
+  | 'WAITING_FIRST_TRAIN'
+  | 'BOARD_FIRST_TRAIN'
+  | 'IN_FIRST_TRAIN'
+  | 'APPROACHING_INTERCHANGE'
+  | 'DEBOARD_INTERCHANGE'
+  | 'WALK_TO_PLATFORM'
+  | 'WAITING_CONNECTING_TRAIN'
+  | 'BOARD_CONNECTING_TRAIN'
+  | 'IN_CONNECTING_TRAIN'
+  | 'APPROACHING_DESTINATION'
+  | 'DEBOARD_DESTINATION'
+  | 'ARRIVED';
+
+export interface JourneyInstruction {
+  stage: InstructionStage;
+  title: string;
+  description: string;
+  eta_minutes: number;
+  scheduled_time: string;
+  line: string;
+  direction: string;
+  station: string;
+  active: boolean;
+  platform?: number;
+}
+
 export interface JourneyUpdate {
   type: 'journey_update' | 'journey_complete';
   live_status?: LiveStatus;
   alerts?: JourneyAlert[];
+  instructions?: JourneyInstruction[];
   message?: string;
   timestamp: string;
 }
@@ -117,6 +145,7 @@ export interface JourneyResponse {
   };
   live_status: LiveStatus;
   alerts: JourneyAlert[];
+  instructions: JourneyInstruction[];
 }
 
 // ── Train Types ──
@@ -156,6 +185,7 @@ export type RootStackParamList = {
   QRTickets: { from?: string; to?: string } | undefined;
   TicketDetails: { ticketData: TicketData; journeyId: string };
   JourneyTimeline: { journeyId: string; ticketData: TicketData };
+  JourneyVisualization: { journeyId: string; ticketData: TicketData };
   RoutePlanner: undefined;
   MetroMap: undefined;
   ActiveTickets: undefined;
