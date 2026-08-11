@@ -19,7 +19,7 @@ Navigating urban transit can be stressful due to lack of real-time visibility, c
 ## 🛠 Tech Stack
 | Component | Technologies |
 | :--- | :--- |
-| **Frontend (Mobile App)** | React Native, Expo, TypeScript, React Query, Zustand, React Navigation |
+| **Mobile (Mobile App)** | React Native, Expo, TypeScript, React Query, Zustand, React Navigation |
 | **Backend (API Server)** | Python 3, FastAPI, Uvicorn, WebSockets, Pydantic, BeautifulSoup4 |
 
 ## 🏗 Overall Architecture
@@ -75,7 +75,6 @@ graph TD
 ## 📁 Project Structure
 - `mobile/` - The React Native (Expo) frontend application. (Documented in `frontend/README.md`)
 - `backend/` - The FastAPI Python server. (Documented in `backend/README.md`)
-- `frontend/` - Contains documentation specific to the frontend layer.
 
 ## 🚀 Setup & Run Commands
 
@@ -105,5 +104,5 @@ npm start
 
 ## 📚 Detailed Documentation
 Please refer to the sub-READMEs for specific, detailed information on each stack layer:
-- **[Frontend Documentation](frontend/README.md)**
+- **[Frontend Documentation](mobile/README.md)**
 - **[Backend Documentation](backend/README.md)**
