@@ -2,3 +2,81 @@
 __pycache__/
 *.pyc
 venv/
+docker_instructions.py
+docker-compose.yml
+Dockerfile
+test_output.txt
+.pytest_cache
+
+
+
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+
+
+
+# FOR BACKEND - 
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Backend env
+.env
+
+# Expo logs
+*.log
+
+# Coverage
+coverage/
+
+# VS Code
+.vscode/
+
+# JetBrains
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+venv/
