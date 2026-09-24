@@ -11,13 +11,11 @@ import type {
   JourneyResponse,
   TrainArrival,
 } from '../../shared/types';
+import { API_BASE, WS_BASE } from '../../config/env';
 
-// Configure backend URL — update for your network
-// const API_BASE = 'http://172.20.4.221:8000';
-// const WS_BASE = 'ws://172.20.4.221:8000';
-const API_BASE = 'http://localhost:8000';
-const WS_BASE = 'ws://localhost:8000';
-
+/**
+ * Custom fetch with timeout to prevent hanging requests.
+ */
 const TIMEOUT_MS = 8000;
 
 async function fetchWithTimeout(

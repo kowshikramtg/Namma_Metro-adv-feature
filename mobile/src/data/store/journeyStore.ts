@@ -18,6 +18,7 @@ import {
   connectJourneyWebSocket,
 } from '../api/metroApi';
 import { ALL_STATIONS, getStationName } from '../stations/stationData';
+import { findRouteOffline } from '../stations/routing';
 
 interface JourneyState {
   // Active ticket & journey
@@ -86,6 +87,8 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
       const sourceName = getStationName(source);
       const destName = getStationName(destination);
 
+      const offlineRoute = findRouteOffline(source, destination);
+
       const fallbackData: TicketData = {
         ticket_id: ticketId,
         journey_id: journeyId,
@@ -94,10 +97,16 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
         destination: destName,
         destination_id: destination,
         passengers,
-        fare: passengers * 30,
+        fare: offlineRoute ? offlineRoute.fare_estimate * passengers : passengers * 30,
         payment_mode: 'UPI',
         transaction_time: now.toLocaleString('en-IN'),
-        route: {
+        route: offlineRoute ? {
+          segments: offlineRoute.segments,
+          total_time_minutes: offlineRoute.total_time_minutes,
+          interchange_count: offlineRoute.interchange_count,
+          fare_estimate: offlineRoute.fare_estimate,
+          stations_count: offlineRoute.stations_count,
+        } : {
           segments: [{
             from_station_id: source,
             from_station: sourceName,
@@ -141,6 +150,11 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
 
     set({ activeJourneyId: journeyId });
 
+    if (journeyId.startsWith('local-')) {
+      // Offline journey, do not attempt WS or polling
+      return;
+    }
+
     // Initial fetch to immediately populate the single source of truth
     get().refreshJourney(journeyId);
 
@@ -159,11 +173,13 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
         (data: unknown) => {
           const update = data as JourneyUpdate;
           if (update.type === 'journey_update') {
-            set({
-              liveStatus: update.live_status || null,
-              alerts: get().notificationsEnabled ? (update.alerts || []) : [],
-              instructions: update.instructions || [],
-            });
+            set((state) => ({
+              liveStatus: update.live_status || state.liveStatus,
+              alerts: state.notificationsEnabled 
+                ? (update.alerts && update.alerts.length > 0 ? [...state.alerts, ...update.alerts.filter(a => !state.alerts.some(sa => sa.id === a.id))] : state.alerts)
+                : [],
+              instructions: update.instructions && update.instructions.length > 0 ? update.instructions : state.instructions,
+            }));
           } else if (update.type === 'journey_complete') {
             set({
               liveStatus: {

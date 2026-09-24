@@ -16,6 +16,7 @@ import { useJourneyStore } from '../../data/store/journeyStore';
 import { getJourney } from '../../data/api/metroApi';
 import { colors, spacing, borderRadius, shadows } from '../../navigation/theme';
 import type { RootStackParamList, RouteSegment, LiveStatus } from '../../shared/types';
+import { getNodeById } from '../metro-map/data/networkLayout';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -39,6 +40,28 @@ export default function JourneyVisualizationScreen() {
     if (!seg?.station_ids) return undefined;
     const idx = Math.floor(activeStatus.segment_progress * (seg.station_ids.length - 1));
     return seg.station_ids[Math.min(idx, seg.station_ids.length - 1)];
+  })();
+
+  const activeTrainCoords = (() => {
+    if (!activeStatus) return undefined;
+    const seg = activeSegments[activeStatus.current_segment];
+    if (!seg?.station_ids || seg.station_ids.length < 2) return undefined;
+    
+    const totalEdges = seg.station_ids.length - 1;
+    const rawIndex = activeStatus.segment_progress * totalEdges;
+    const idx = Math.min(Math.floor(rawIndex), totalEdges - 1);
+    const remainder = rawIndex - idx;
+    
+    const nodeA = getNodeById(seg.station_ids[idx]);
+    const nodeB = getNodeById(seg.station_ids[idx + 1]);
+    
+    if (nodeA && nodeB) {
+      return {
+        x: nodeA.x + (nodeB.x - nodeA.x) * remainder,
+        y: nodeA.y + (nodeB.y - nodeA.y) * remainder,
+      };
+    }
+    return undefined;
   })();
 
   const statusText = (() => {
@@ -70,6 +93,7 @@ export default function JourneyVisualizationScreen() {
           height={SCREEN_H - 200}
           highlightedRoute={highlightedRoute}
           activeStationId={currentStationId}
+          activeTrainCoords={activeTrainCoords}
         />
       </ScrollView>
 

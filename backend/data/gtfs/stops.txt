@@ -1,0 +1,65 @@
+stop_id,stop_name,stop_lat,stop_lon
+challaghatta,Challaghatta,12.9716,77.5946
+kengeri_bus_terminal,Kengeri Bus Terminal,12.9716,77.5946
+kengeri,Kengeri,12.9716,77.5946
+pattanagere,Pattanagere,12.9716,77.5946
+jnanabharathi,Jnanabharathi,12.9716,77.5946
+rajarajeshwari_nagar,Rajarajeshwari Nagar,12.9716,77.5946
+nayandahalli,Nayandahalli,12.9716,77.5946
+mysore_road,Mysore Road,12.9716,77.5946
+deepanjali_nagar,Deepanjali Nagar,12.9716,77.5946
+attiguppe,Attiguppe,12.9716,77.5946
+vijayanagar,Vijayanagar,12.9716,77.5946
+hosahalli,Hosahalli,12.9716,77.5946
+magadi_road,Magadi Road,12.9716,77.5946
+city_railway_station,City Railway Station,12.9716,77.5946
+nadaprabhu_kempegowda_majestic,Nadaprabhu Kempegowda Station Majestic,12.9716,77.5946
+sir_m_visvesvaraya_central_college,Sir M. Visvesvaraya Station Central College,12.9716,77.5946
+dr_br_ambedkar_vidhana_soudha,Dr. B.R. Ambedkar Station Vidhana Soudha,12.9716,77.5946
+cubbon_park,Cubbon Park,12.9716,77.5946
+mg_road,MG Road,12.9716,77.5946
+trinity,Trinity,12.9716,77.5946
+halasuru,Halasuru,12.9716,77.5946
+indiranagar,Indiranagar,12.9716,77.5946
+swami_vivekananda_road,Swami Vivekananda Road,12.9716,77.5946
+baiyappanahalli,Baiyappanahalli,12.9716,77.5946
+benniganahalli,Benniganahalli,12.9716,77.5946
+hoodi,Hoodi,12.9716,77.5946
+garudacharpalya,Garudacharpalya,12.9716,77.5946
+mahadevapura,Mahadevapura,12.9716,77.5946
+krishnarajapura,Krishnarajapura,12.9716,77.5946
+seetharampalya,Seetharampalya,12.9716,77.5946
+hoodi_junction,Hoodi Junction,12.9716,77.5946
+channasandra,Channasandra,12.9716,77.5946
+kadugodi_whitefield,Kadugodi (Whitefield),12.9716,77.5946
+madavara,Madavara,12.9716,77.5946
+chikkabidarakallu,Chikkabidarakallu,12.9716,77.5946
+manjunathanagar,Manjunathanagar,12.9716,77.5946
+nagasandra,Nagasandra,12.9716,77.5946
+dasarahalli,Dasarahalli,12.9716,77.5946
+jalahalli,Jalahalli,12.9716,77.5946
+peenya_industry,Peenya Industry,12.9716,77.5946
+peenya,Peenya,12.9716,77.5946
+goraguntepalya,Goraguntepalya,12.9716,77.5946
+yeshwanthpur,Yeshwanthpur,12.9716,77.5946
+sandal_soap_factory,Sandal Soap Factory,12.9716,77.5946
+mahalakshmi,Mahalakshmi,12.9716,77.5946
+rajajinagar,Rajajinagar,12.9716,77.5946
+mahakavi_kuvempu_road,Mahakavi Kuvempu Road,12.9716,77.5946
+srirampura,Srirampura,12.9716,77.5946
+sampige_road,Sampige Road,12.9716,77.5946
+chickpete,Chickpete,12.9716,77.5946
+krishna_rajendra_market,Krishna Rajendra Market,12.9716,77.5946
+national_college,National College,12.9716,77.5946
+lalbagh,Lalbagh,12.9716,77.5946
+south_end_circle,South End Circle,12.9716,77.5946
+jayanagar,Jayanagar,12.9716,77.5946
+rashtreeya_vidyalaya_road,Rashtreeya Vidyalaya Road,12.9716,77.5946
+banashankari,Banashankari,12.9716,77.5946
+jaya_prakash_nagar,Jaya Prakash Nagar,12.9716,77.5946
+yelachenahalli,Yelachenahalli,12.9716,77.5946
+konanakunte_cross,Konanakunte Cross,12.9716,77.5946
+doddakallasandra,Doddakallasandra,12.9716,77.5946
+vajarahalli,Vajarahalli,12.9716,77.5946
+thalaghattapura,Thalaghattapura,12.9716,77.5946
+silk_institute,Silk Institute,12.9716,77.5946

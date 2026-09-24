@@ -22,11 +22,14 @@ type RouteP = RouteProp<RootStackParamList, 'QRTickets'>;
 export default function QRPurchaseScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteP>();
-  const { purchaseTicket, purchasing } = useJourneyStore();
+  const { purchaseTicket, purchasing, activeTicket, liveStatus } = useJourneyStore();
+
+  const isJourneyActive = activeTicket && (!liveStatus || liveStatus.status !== 'completed');
 
   const [source, setSource] = useState(route.params?.from || '');
   const [dest, setDest] = useState(route.params?.to || '');
   const [passengers, setPassengers] = useState(1);
+  const [error, setError] = useState<string | null>(null);
 
   const swapStations = () => {
     const tmp = source;
@@ -36,6 +39,7 @@ export default function QRPurchaseScreen() {
 
   const handlePurchase = async () => {
     if (!source || !dest) return;
+    setError(null);
     try {
       const data = await purchaseTicket(source, dest, passengers);
       navigation.navigate('TicketDetails', {
@@ -44,6 +48,7 @@ export default function QRPurchaseScreen() {
       });
     } catch (err) {
       console.error('Purchase failed:', err);
+      setError('Unable to purchase ticket. Please check your connection and try again.');
     }
   };
 
@@ -51,14 +56,34 @@ export default function QRPurchaseScreen() {
     <View style={styles.container}>
       <Header title="Namma Metro QR Tickets" />
 
-      <View style={styles.card}>
-        <View style={styles.relative}>
-          <StationSelector
-            label="Select From Station"
-            value={source}
-            onChange={setSource}
-            excludeId={dest}
-          />
+      {isJourneyActive ? (
+        <View style={styles.activeJourneyCard}>
+          <Text style={styles.activeJourneyTitle}>Active Journey Detected</Text>
+          <Text style={styles.activeJourneyText}>
+            You currently have an active ticket from {activeTicket.source} to {activeTicket.destination}.
+          </Text>
+          <Text style={styles.activeJourneySubtext}>
+            Please complete or expire your current journey before purchasing a new ticket.
+          </Text>
+          <TouchableOpacity
+            style={styles.viewJourneyBtn}
+            onPress={() => navigation.navigate('TicketDetails', {
+              ticketData: activeTicket,
+              journeyId: activeTicket.journey_id,
+            })}
+          >
+            <Text style={styles.viewJourneyBtnText}>VIEW CURRENT TICKET</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.card}>
+          <View style={styles.relative}>
+            <StationSelector
+              label="Select From Station"
+              value={source}
+              onChange={setSource}
+              excludeId={dest}
+            />
           <View style={styles.divider} />
           <StationSelector
             label="Select To Station"
@@ -102,10 +127,15 @@ export default function QRPurchaseScreen() {
           {purchasing ? (
             <ActivityIndicator color={colors.neutral[0]} />
           ) : (
-            <Text style={styles.purchaseBtnText}>PURCHASE</Text>
+            <Text style={styles.purchaseBtnText}>BUY QR TICKET</Text>
           )}
         </TouchableOpacity>
+        
+        {error && (
+          <Text style={styles.errorText}>{error}</Text>
+        )}
       </View>
+      )}
     </View>
   );
 }
@@ -147,5 +177,59 @@ const styles = StyleSheet.create({
     paddingVertical: 14, alignItems: 'center', marginHorizontal: 20,
   },
   purchaseBtnDisabled: { opacity: 0.6 },
-  purchaseBtnText: { color: colors.neutral[0], fontSize: 16, fontWeight: '700', letterSpacing: 1 },
+  purchaseBtnText: {
+    color: colors.neutral[0],
+    fontFamily: 'Roboto-Bold',
+    fontSize: 16,
+    letterSpacing: 1,
+  },
+  errorText: {
+    color: colors.status.error,
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: spacing.md,
+  },
+  activeJourneyCard: {
+    backgroundColor: colors.surface,
+    margin: spacing.lg,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    alignItems: 'center',
+    ...shadows.md,
+  },
+  activeJourneyTitle: {
+    fontFamily: 'Roboto-Bold',
+    fontSize: 20,
+    color: colors.purple[700],
+    marginBottom: spacing.sm,
+  },
+  activeJourneyText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 16,
+    color: colors.text.primary,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  activeJourneySubtext: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+  },
+  viewJourneyBtn: {
+    backgroundColor: colors.purple[600],
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: borderRadius.full,
+    width: '100%',
+    alignItems: 'center',
+  },
+  viewJourneyBtnText: {
+    color: colors.neutral[0],
+    fontFamily: 'Roboto-Bold',
+    fontSize: 16,
+    letterSpacing: 1,
+  },
 });

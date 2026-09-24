@@ -18,7 +18,8 @@ Outputs:
 Architecture supports replacement with real GTFS or GPS feeds.
 """
 
-from datetime import datetime, timedelta, time as dtime
+from datetime import datetime, timedelta, time as dtime, timezone
+IST = timezone(timedelta(hours=5, minutes=30))
 from typing import List, Dict, Optional
 from pydantic import BaseModel
 
@@ -85,8 +86,8 @@ class TrainSimulator:
         is_weekend = target_date.weekday() >= 5
 
         departures = []
-        current = datetime.combine(target_date.date(), window.first_train)
-        end = datetime.combine(target_date.date(), window.last_train)
+        current = datetime.combine(target_date.date(), window.first_train, tzinfo=IST)
+        end = datetime.combine(target_date.date(), window.last_train, tzinfo=IST)
 
         while current <= end:
             departures.append(current)
@@ -144,10 +145,14 @@ class TrainSimulator:
 
             if curr_offset <= elapsed <= next_offset:
                 seg_duration = next_offset - curr_offset
+
                 if seg_duration > 0:
-                    progress = (elapsed - curr_offset) / seg_duration
+                    import math
+                    linear_progress = (elapsed - curr_offset) / seg_duration
+                    progress = (1 - math.cos(linear_progress * math.pi)) / 2
                 else:
                     progress = 0.0
+
 
                 # Determine if at station (within 0.5 min dwell) or in transit
                 if progress < 0.05:
@@ -185,7 +190,7 @@ class TrainSimulator:
         Compute positions of ALL active trains at the given time.
         """
         if at_time is None:
-            at_time = datetime.now()
+            at_time = datetime.now(IST)
 
         positions = []
 
@@ -215,7 +220,7 @@ class TrainSimulator:
         Compute the next train arrival at a specific station.
         """
         if after is None:
-            after = datetime.now()
+            after = datetime.now(IST)
 
         offsets = await self._compute_station_arrival_offsets(line, direction)
 

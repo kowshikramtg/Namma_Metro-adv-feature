@@ -1,0 +1,3 @@
+route_id,agency_id,route_short_name,route_long_name,route_type,route_color
+purple,BMRC,Purple,Purple Line (Challaghatta - Kadugodi),1,7B2D8E
+green,BMRC,Green,Green Line (Madavara - Silk Institute),1,4CAF50

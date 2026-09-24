@@ -1,0 +1,21 @@
+﻿...........................................F..F......................... [ 85%]
+............                                                             [100%]
+================================== FAILURES ===================================
+__________________ TestGetLiveStatus.test_boarding_at_start ___________________
+tests\test_schedule_engine.py:148: in test_boarding_at_start
+    assert status["status"] in ("boarding", "in_progress")
+E   AssertionError: assert 'completed' in ('boarding', 'in_progress')
+_____________ TestGetLiveStatus.test_remaining_minutes_decreases ______________
+tests\test_schedule_engine.py:174: in test_remaining_minutes_decreases
+    assert s1["remaining_minutes"] > s2["remaining_minutes"]
+E   assert 0 > 0
+============================== warnings summary ===============================
+tests/test_api.py: 73 warnings
+  D:\NammaMetro-2\backend\venv\Lib\site-packages\pydantic\main.py:1113: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.9/migration/
+    warnings.warn('The `dict` method is deprecated; use `model_dump` instead.', category=PydanticDeprecatedSince20)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_schedule_engine.py::TestGetLiveStatus::test_boarding_at_start
+FAILED tests/test_schedule_engine.py::TestGetLiveStatus::test_remaining_minutes_decreases
+2 failed, 82 passed, 73 warnings in 1.87s

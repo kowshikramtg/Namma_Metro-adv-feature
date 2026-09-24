@@ -5,7 +5,8 @@ Consumes the ScheduleProvider interface for all timing data.
 Does NOT hardcode frequencies or train positions.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+IST = timezone(timedelta(hours=5, minutes=30))
 from typing import List, Dict, Optional
 
 from data_providers.base import ScheduleProvider
@@ -30,7 +31,7 @@ class ScheduleEngine:
         Computes from schedule frequencies — no random values.
         """
         if base_time is None:
-            base_time = datetime.now()
+            base_time = datetime.now(IST)
 
         is_weekend = base_time.weekday() >= 5
         current_time = base_time
@@ -69,15 +70,7 @@ class ScheduleEngine:
             if i < len(segments) - 1:
                 walk_time = await self._provider.get_interchange_walk_time()
                 current_time = arrival + timedelta(minutes=walk_time)
-                # Wait for next train on the new line
-                next_line = segments[i + 1].line if hasattr(segments[i + 1], "line") else segments[i + 1].get("line", "green")
-                next_freq = await self._provider.get_frequency_at(
-                    next_line, current_time.hour, is_weekend
-                )
-                wait_mins = current_time.minute % next_freq
-                if wait_mins != 0:
-                    current_time = current_time + timedelta(minutes=next_freq - wait_mins)
-                current_time = current_time.replace(second=0, microsecond=0)
+                # Next segment's loop iteration will align to frequency
 
         return enriched
 
@@ -91,25 +84,36 @@ class ScheduleEngine:
         Get next N train arrivals at a station.
         Computed from schedule — no random delays or fake positions.
         """
-        now = datetime.now()
+        now = datetime.now(IST)
         is_weekend = now.weekday() >= 5
         freq = await self._provider.get_frequency_at(line, now.hour, is_weekend)
         window = await self._provider.get_operating_window(line)
-
-        # Compute next departure aligned to frequency
-        mins_past = now.minute % freq
-        next_min = now.minute + (freq - mins_past) if mins_past != 0 else now.minute
-        next_time = now.replace(minute=0, second=0, microsecond=0) + timedelta(minutes=next_min)
 
         # Ensure within operating hours
         if now.time() > window.last_train:
             return []
 
+        # Align to frequency slots measured from first_train of the day.
+        # This keeps train times consistent with the train simulator.
+        first_train_dt = datetime.combine(now.date(), window.first_train, tzinfo=IST)
+        elapsed_since_first = (now - first_train_dt).total_seconds() / 60
+
+        if elapsed_since_first < 0:
+            # Before first train — next departure is first_train itself
+            slots_ahead = 0
+        else:
+            # How many full frequency-slots have passed?
+            slots_passed = int(elapsed_since_first / freq)
+            # Start from the NEXT slot (add +1 to exclude trains already departed)
+            slots_ahead = slots_passed + 1
+
+        next_time = first_train_dt + timedelta(minutes=slots_ahead * freq)
+
         # Terminal destinations based on line
         if line == "purple":
-            destinations = ["Kadugodi (Whitefield)", "Challaghatta"]
+            destinations = [("Kadugodi (Whitefield)", "down"), ("Challaghatta", "up")]
         else:
-            destinations = ["Silk Institute", "Madavara"]
+            destinations = [("Silk Institute", "down"), ("Madavara", "up")]
 
         trains = []
         for i in range(count):
@@ -120,8 +124,7 @@ class ScheduleEngine:
 
             minutes_away = max(0, int((train_time - now).total_seconds() / 60))
 
-            for dir_idx, dest in enumerate(destinations):
-                direction = "down" if dir_idx == 0 else "up"
+            for dir_idx, (dest, direction) in enumerate(destinations):
                 train_id = f"{line[0].upper()}L-{train_time.strftime('%H%M')}-{direction[0].upper()}"
 
                 trains.append({
@@ -137,7 +140,7 @@ class ScheduleEngine:
                     "coaches": 6,
                 })
 
-        # Sort by arrival time and limit
+        # Sort by arrival_iso and return
         trains.sort(key=lambda t: t["arrival_iso"])
         return trains[:count * 2]
 
@@ -150,7 +153,7 @@ class ScheduleEngine:
         Get live journey status based on elapsed time since journey start.
         Computed mathematically from segment travel times.
         """
-        now = datetime.now()
+        now = datetime.now(IST)
         elapsed = (now - journey_start_time).total_seconds() / 60
 
         total_time = sum(s.get("travel_time_minutes", 0) for s in segments)

@@ -24,8 +24,10 @@ import {
 interface MetroNetworkSVGProps {
   /** Station IDs to highlight as active route */
   highlightedRoute?: string[];
-  /** Currently active station ID (train position) */
+  /** Currently active station ID (train position - legacy) */
   activeStationId?: string;
+  /** Active train coordinates for smooth movement */
+  activeTrainCoords?: { x: number; y: number };
   /** Callback when a station is tapped */
   onStationPress?: (station: StationNode) => void;
   /** Width of the container */
@@ -42,6 +44,7 @@ const DIM_OPACITY = 0.15;
 export const MetroNetworkSVG: React.FC<MetroNetworkSVGProps> = ({
   highlightedRoute,
   activeStationId,
+  activeTrainCoords,
   onStationPress,
   width,
   height,
@@ -136,8 +139,8 @@ export const MetroNetworkSVG: React.FC<MetroNetworkSVGProps> = ({
           />
         )}
 
-        {/* Active train marker */}
-        {isActive && (
+        {/* Active train marker - Legacy fallback */}
+        {!activeTrainCoords && isActive && (
           <Circle
             cx={node.x}
             cy={node.y}
@@ -194,6 +197,18 @@ export const MetroNetworkSVG: React.FC<MetroNetworkSVGProps> = ({
         {/* Interchange — rendered last (on top) */}
         {PURPLE_LINE_NODES.filter((n) => n.line === 'both').map((n) =>
           renderStation(n, '#333'),
+        )}
+
+        {/* Smooth active train marker */}
+        {activeTrainCoords && (
+          <Circle
+            cx={activeTrainCoords.x}
+            cy={activeTrainCoords.y}
+            r={STATION_RADIUS + 4}
+            fill="#FFF"
+            stroke="#F44336"
+            strokeWidth={3}
+          />
         )}
 
         {/* Legend */}

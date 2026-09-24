@@ -11,6 +11,7 @@ import {
 import { useJourneyStore } from '../../data/store/journeyStore';
 import { colors, spacing, borderRadius, shadows } from '../../navigation/theme';
 import type { JourneyAlert } from '../../shared/types';
+import { scheduleLocalNotification } from './PushNotificationManager';
 
 const BANNER_DURATION_MS = 5000;
 
@@ -50,9 +51,20 @@ export const NotificationOverlay: React.FC = () => {
   // Watch for new alerts from store
   useEffect(() => {
     if (alerts.length > 0) {
-      const latest = alerts[0];
-      if (latest.id !== lastAlertId && latest.priority !== 'low') {
+      // Find the most recent alert by timestamp, or use the last one if timestamps are equal
+      const sortedAlerts = [...alerts].sort((a, b) => {
+        const timeA = new Date(a.timestamp).getTime();
+        const timeB = new Date(b.timestamp).getTime();
+        return timeB - timeA;
+      });
+      const latest = sortedAlerts[0];
+      if (latest && latest.id !== lastAlertId && latest.priority !== 'low') {
         showBanner(latest);
+        scheduleLocalNotification(
+          `${latest.icon} ${latest.title}`,
+          latest.message + (latest.detail ? ` — ${latest.detail}` : ''),
+          { alertId: latest.id, type: latest.type }
+        ).catch(() => {});
       }
     }
   }, [alerts, lastAlertId, showBanner]);

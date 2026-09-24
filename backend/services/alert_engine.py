@@ -5,7 +5,8 @@ Alerts are event-driven, triggered by changes in journey status.
 No random or fake alerts — all derived from actual journey state.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+IST = timezone(timedelta(hours=5, minutes=30))
 from typing import List, Dict
 
 
@@ -121,7 +122,7 @@ class AlertEngine:
     def _make_alert(alert_type: str, message: str, detail: str = "") -> Dict:
         type_info = AlertEngine.ALERT_TYPES.get(alert_type, {})
         return {
-            "id": f"{alert_type}_{int(datetime.now().timestamp() * 1000)}",
+            "id": f"{alert_type}_{int(datetime.now(IST).timestamp() * 1000)}",
             "type": alert_type,
             "icon": type_info.get("icon", "ℹ️"),
             "title": type_info.get("title", "Alert"),
@@ -129,5 +130,5 @@ class AlertEngine:
             "detail": detail,
             "color": type_info.get("color", "#666"),
             "priority": type_info.get("priority", "low"),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(IST).isoformat(),
         }

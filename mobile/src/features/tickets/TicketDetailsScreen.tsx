@@ -165,15 +165,52 @@ export default function TicketDetailsScreen() {
         <View style={styles.ticketCard}>
           <Text style={styles.ticketTitle}>Trip Details</Text>
 
-          {/* Route: source → destination */}
-          <View style={styles.routeRow}>
-            <View style={[styles.routeDot, { backgroundColor: colors.green[500] }]} />
-            <Text style={styles.stationText}>{ticketData.source}</Text>
+          {/* Journey Overview */}
+          <View style={styles.journeyOverview}>
+            <Text style={styles.journeyOverviewText}>Total Duration: {ticketData.route?.total_time_minutes} mins</Text>
           </View>
-          <View style={styles.routeConnector} />
-          <View style={styles.routeRow}>
-            <View style={[styles.routeDot, { backgroundColor: colors.green[500] }]} />
-            <Text style={styles.stationText}>{ticketData.destination}</Text>
+
+          {/* Route Segments breakdown */}
+          <View style={styles.segmentsContainer}>
+            {ticketData.route?.segments?.map((seg, idx) => {
+              const depStr = seg.departure_time || '--:--';
+              const arrStr = seg.arrival_time || '--:--';
+              const depFmt = depStr.includes('T') ? depStr.split('T')[1]?.substring(0, 5) : depStr;
+              const arrFmt = arrStr.includes('T') ? arrStr.split('T')[1]?.substring(0, 5) : arrStr;
+              const lineColor = seg.line.toLowerCase() === 'green' ? colors.green[500] : colors.purple[500];
+
+              return (
+                <React.Fragment key={idx}>
+                  <View style={styles.segmentCard}>
+                    <View style={[styles.segmentLineIndicator, { backgroundColor: lineColor }]} />
+                    <View style={styles.segmentDetails}>
+                      <View style={styles.stationTimeRow}>
+                        <Text style={styles.segmentStation}>{seg.from_station}</Text>
+                        <Text style={styles.segmentTime}>{depFmt}</Text>
+                      </View>
+                      
+                      <View style={styles.segmentDots}>
+                         <Text style={[styles.segmentTravelTime, { color: lineColor }]}>
+                           ↓ {seg.travel_time_minutes} min journey on {seg.line} Line
+                         </Text>
+                      </View>
+
+                      <View style={styles.stationTimeRow}>
+                        <Text style={styles.segmentStation}>{seg.to_station}</Text>
+                        <Text style={styles.segmentTime}>{arrFmt}</Text>
+                      </View>
+                    </View>
+                  </View>
+                  
+                  {idx < (ticketData.route.segments.length - 1) && (
+                    <View style={styles.interchangeDivider}>
+                      <Text style={styles.segmentInterchangeIcon}>🔄</Text>
+                      <Text style={styles.segmentInterchangeText}>Change here for {ticketData.route.segments[idx+1].line} Line</Text>
+                    </View>
+                  )}
+                </React.Fragment>
+              );
+            })}
           </View>
 
           {/* Passenger count */}
@@ -240,17 +277,30 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg, padding: spacing.xl, ...shadows.md,
   },
   ticketTitle: {
-    fontSize: 16, fontWeight: '700', color: colors.purple[600], marginBottom: spacing.lg,
+    fontSize: 16, fontWeight: '700', color: colors.purple[600], marginBottom: spacing.md,
   },
-  routeRow: { flexDirection: 'row', alignItems: 'center' },
-  routeDot: { width: 10, height: 10, borderRadius: 5, marginRight: 12 },
-  routeConnector: {
-    width: 2, height: 20, backgroundColor: colors.neutral[200],
-    marginLeft: 4, marginVertical: 4,
+  journeyOverview: {
+    backgroundColor: colors.neutral[50], padding: spacing.sm, borderRadius: borderRadius.sm,
+    marginBottom: spacing.lg, alignItems: 'center'
   },
-  stationText: { fontSize: 15, color: colors.text.primary, fontWeight: '500' },
+  journeyOverviewText: { fontSize: 13, fontWeight: '600', color: colors.text.primary },
+  
+  segmentsContainer: { marginBottom: spacing.md },
+  segmentCard: { flexDirection: 'row', marginBottom: spacing.xs },
+  segmentLineIndicator: { width: 4, borderRadius: 2, marginRight: 12 },
+  segmentDetails: { flex: 1, paddingVertical: 2 },
+  stationTimeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  segmentStation: { fontSize: 15, color: colors.text.primary, fontWeight: '600' },
+  segmentTime: { fontSize: 13, color: colors.text.secondary, fontWeight: '500' },
+  segmentDots: { marginVertical: 12, paddingLeft: 4, borderLeftWidth: 2, borderLeftColor: colors.neutral[150], marginLeft: 8 },
+  segmentTravelTime: { fontSize: 12, marginLeft: 12, fontWeight: '500' },
+  interchangeDivider: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.purple[50], padding: spacing.sm, borderRadius: borderRadius.sm, marginVertical: spacing.sm },
+  segmentInterchangeIcon: { fontSize: 14, marginRight: spacing.sm },
+  segmentInterchangeText: { fontSize: 12, color: colors.purple[700], fontWeight: '600' },
+
   passengerInfo: {
     flexDirection: 'row', alignItems: 'center', marginTop: spacing.md,
+    justifyContent: 'center',
   },
   passengerIcon: { fontSize: 14, marginRight: 4 },
   passengerCount: { fontSize: 13, color: colors.text.secondary },

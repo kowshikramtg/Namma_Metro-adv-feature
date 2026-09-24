@@ -10,8 +10,11 @@ OpenAPI documentation at /docs.
 import asyncio
 import uuid
 import logging
-from datetime import datetime
+import os
+from datetime import datetime, timedelta, timezone
+IST = timezone(timedelta(hours=5, minutes=30))
 from typing import Optional
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,6 +37,40 @@ from services.ai_interfaces import PlaceholderCrowdEstimator
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ── Service Initialization ──
+provider = get_schedule_provider("auto")
+schedule_engine = ScheduleEngine(provider)
+train_simulator = TrainSimulator(provider)
+crowd_estimator = PlaceholderCrowdEstimator()
+
+# ── In-memory journey store ──
+active_journeys: dict = {}
+
+
+async def cleanup_journeys_loop():
+    while True:
+        await asyncio.sleep(3600)  # run every hour
+        now = datetime.now(IST)
+        to_remove = []
+        for j_id, item in active_journeys.items():
+            started = item.get("started_at")
+            if started and (now - started).total_seconds() > 2 * 3600:
+                to_remove.append(j_id)
+        
+        for j_id in to_remove:
+            del active_journeys[j_id]
+            logger.info(f"Cleaned up stale journey: {j_id}")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    provider_name = await provider.get_provider_name()
+    logger.info(f"Starting Namma Metro Backend. Data Provider: {provider_name}")
+    task = asyncio.create_task(cleanup_journeys_loop())
+    yield
+    task.cancel()
+
+
 # ── App ──
 app = FastAPI(
     title="Namma Metro Journey Companion API",
@@ -45,17 +82,20 @@ app = FastAPI(
     version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
+
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True if "*" not in CORS_ORIGINS else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ── Service Initialization ──
+
 provider = get_schedule_provider("auto")
 schedule_engine = ScheduleEngine(provider)
 train_simulator = TrainSimulator(provider)
@@ -99,7 +139,7 @@ async def health_check():
         "purple_line_operational": await provider.is_operational("purple"),
         "green_line_operational": await provider.is_operational("green"),
         "active_journeys": len(active_journeys),
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(IST).isoformat(),
     }
 
 
@@ -178,7 +218,7 @@ async def purchase_ticket(req: TicketPurchase):
     enriched_segments = await schedule_engine.compute_journey_times(route.segments)
 
     ticket_id = (
-        f"{datetime.now().strftime('%d%m%Y%H%M%S')}"
+        f"{datetime.now(IST).strftime('%d%m%Y%H%M%S')}"
         f"M{uuid.uuid4().hex[:10].upper()}"
     )
     journey_id = str(uuid.uuid4())
@@ -201,7 +241,7 @@ async def purchase_ticket(req: TicketPurchase):
         "interchange_count": route.interchange_count,
         "stations_count": route.stations_count,
         "fare": route.fare_estimate * req.passengers,
-        "start_time": datetime.now().isoformat(),
+        "start_time": datetime.now(IST).isoformat(),
         "status": "active",
     }
 
@@ -215,7 +255,7 @@ async def purchase_ticket(req: TicketPurchase):
         "passengers": req.passengers,
         "fare": route.fare_estimate * req.passengers,
         "payment_mode": "UPI",
-        "transaction_time": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
+        "transaction_time": datetime.now(IST).strftime("%d-%m-%Y %H:%M:%S"),
         "route": {
             "segments": enriched_segments,
             "total_time_minutes": route.total_time_minutes,
@@ -273,7 +313,7 @@ async def get_all_train_positions():
     return {
         "positions": [p.dict() for p in positions],
         "count": len(positions),
-        "computed_at": datetime.now().isoformat(),
+        "computed_at": datetime.now(IST).isoformat(),
         "source": "schedule-computed",
     }
 
@@ -347,11 +387,18 @@ async def journey_websocket(websocket: WebSocket, journey_id: str):
     start_time = datetime.fromisoformat(journey["start_time"])
 
     try:
+        sent_alerts = set()
         while True:
             live_status = await schedule_engine.get_live_status(
                 start_time, journey["segments"]
             )
             alerts = AlertEngine.generate_alerts(live_status, journey["segments"])
+            
+            new_alerts = []
+            for alert in alerts:
+                if alert["type"] not in sent_alerts:
+                    new_alerts.append(alert)
+                    sent_alerts.add(alert["type"])
             
             current_seg_idx = live_status.get("current_segment", 0)
             current_seg = journey["segments"][current_seg_idx] if current_seg_idx < len(journey["segments"]) else journey["segments"][-1]
@@ -368,9 +415,9 @@ async def journey_websocket(websocket: WebSocket, journey_id: str):
             await websocket.send_json({
                 "type": "journey_update",
                 "live_status": live_status,
-                "alerts": alerts,
+                "alerts": new_alerts,
                 "instructions": instructions,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(IST).isoformat(),
             })
 
             if live_status["status"] == "completed":
@@ -384,6 +431,9 @@ async def journey_websocket(websocket: WebSocket, journey_id: str):
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for journey {journey_id}")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+
 
 
 # ── Data Provider Info ──
@@ -391,14 +441,14 @@ async def journey_websocket(websocket: WebSocket, journey_id: str):
 @app.get("/api/provider/status", tags=["System"])
 async def get_provider_status():
     """Get information about the current data provider."""
-    from data_providers.bmrc_scraper import BMRCScraperProvider
+    from data_providers.gtfs_provider import GTFSProvider
 
     status = {
         "provider": await provider.get_provider_name(),
         "type": type(provider).__name__,
     }
 
-    if isinstance(provider, BMRCScraperProvider):
+    if isinstance(provider, GTFSProvider):
         status["scrape_status"] = provider.scrape_status
 
     return status

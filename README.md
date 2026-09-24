@@ -96,6 +96,32 @@ npm start
 ```
 *Use the Expo Go app on your phone, or run via emulator.*
 
+## 🌩 Deployment
+
+### Backend
+
+The backend is fully containerized and ready for cloud deployment.
+Environment variables required: `HOST`, `PORT`, `DATA_PROVIDER`, `CORS_ORIGINS`.
+
+**Option 1: Docker Compose (VMs)**
+```bash
+cd backend
+docker-compose up -d --build
+```
+
+**Option 2: PaaS (Render / Railway)**
+A `Procfile` is included for zero-config deployments. Just connect the repository to your PaaS of choice and set the environment variables.
+
+### Mobile App
+
+1. Ensure the backend is deployed.
+2. In the `mobile/` directory, set the `EXPO_PUBLIC_API_BASE` environment variable to your deployment URL.
+3. Build for stores using Expo Application Services (EAS):
+```bash
+cd mobile
+eas build -p all
+```
+
 ## 🗺 Roadmap
 - [ ] Implement actual AI Crowd Estimation (currently placeholder).
 - [ ] Add support for the upcoming Yellow Line.

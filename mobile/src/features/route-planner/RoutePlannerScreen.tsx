@@ -11,8 +11,10 @@ import { Header } from '../../shared/components/Header';
 import { StationSelector } from '../../shared/components/StationSelector';
 import { planJourney } from '../../data/api/metroApi';
 import { getStationName } from '../../data/stations/stationData';
+import { findRouteOffline } from '../../data/stations/routing';
 import { colors, spacing, borderRadius, shadows } from '../../navigation/theme';
 import type { JourneyPlanResponse, RouteSegment } from '../../shared/types';
+import { useRouteStore } from './routeStore';
 
 export default function RoutePlannerScreen() {
   const [source, setSource] = useState('');
@@ -20,6 +22,8 @@ export default function RoutePlannerScreen() {
   const [result, setResult] = useState<JourneyPlanResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const { cacheRoute, getCachedRoute } = useRouteStore();
 
   const swapStations = () => {
     const tmp = source;
@@ -36,9 +40,26 @@ export default function RoutePlannerScreen() {
     try {
       const data = await planJourney(source, dest);
       setResult(data);
+      cacheRoute(source, dest, data);
     } catch (e) {
-      setError('Could not connect to server. Please check your connection.');
-      setResult(null);
+      // Try cached route
+      const cached = getCachedRoute(source, dest);
+      if (cached) {
+        setResult(cached);
+        setError('Offline mode: Showing cached route data.');
+      } else {
+        // Fallback to offline graph routing
+        const offlineRoute = findRouteOffline(source, dest);
+        if (offlineRoute) {
+          const fallbackData = { route: offlineRoute, next_trains: [] };
+          setResult(fallbackData);
+          cacheRoute(source, dest, fallbackData);
+          setError('Offline mode: Using offline routing estimation.');
+        } else {
+          setError('Could not connect to server and no offline route found.');
+          setResult(null);
+        }
+      }
     } finally {
       setLoading(false);
     }

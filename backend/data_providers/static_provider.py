@@ -197,6 +197,8 @@ class StaticScheduleProvider(ScheduleProvider):
         return "StaticScheduleProvider (BMRC-accurate local data)"
 
     async def is_operational(self, line: str) -> bool:
+        from datetime import timezone, timedelta
+        IST = timezone(timedelta(hours=5, minutes=30))
         window = await self.get_operating_window(line)
-        now = datetime.now().time()
+        now = datetime.now(IST).time()
         return window.first_train <= now <= window.last_train
