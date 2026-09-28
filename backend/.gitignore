@@ -1,3 +1,7 @@
+data/
+data_providers/
+
+
 # Python
 __pycache__/
 *.pyc

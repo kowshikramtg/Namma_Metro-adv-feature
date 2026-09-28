@@ -68,3 +68,5 @@ coverage/
 __pycache__/
 *.pyc
 venv/
+package-lock.json
+package.json

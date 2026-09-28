@@ -14,7 +14,8 @@
           "color": "#7B2D8E",
           "sounds": []
         }
-      ]
+      ],
+      "expo-status-bar"
     ],
     "ios": {
       "supportsTablet": true,
@@ -28,16 +29,16 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "googleServicesFile": "./google-services.json"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "your-eas-project-id"
+        "projectId": "d42b5845-7e7d-4874-8c65-cc29f1c73b1a"
       }
-    }
+    },
+    "owner": "kowshiktg"
   }
 }
