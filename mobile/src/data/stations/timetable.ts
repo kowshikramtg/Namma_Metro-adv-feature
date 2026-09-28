@@ -51,41 +51,138 @@ export function cumulativeGreen(idx: number): number {
   return acc;
 }
 
-/**
- * Generate all terminal departure times (minutes from midnight)
- * following the real BMRCL peak/off-peak schedule.
- *
- * Peak:     7:00–9:59 AM (420–599 min)  and  17:00–20:59 PM (1020–1259 min) → 10 min
- * Off-peak: all other slots → 15 min
- */
-function generateDepartures(firstMinute: number, lastMinute: number): number[] {
-  const times: number[] = [];
-  let t = firstMinute;
-  while (t <= lastMinute) {
-    times.push(t);
-    const hour = Math.floor(t / 60) % 24;
-    const isPeak = (hour >= 7 && hour < 10) || (hour >= 17 && hour < 21);
-    t += isPeak ? 10 : 15;
-  }
-  return times;
+// ── Exact Official BMRCL Frequencies ──
+
+type TimeBlock = { from: string; to: string; freq: number };
+
+const PURPLE_CHALLAGHATTA_MON: TimeBlock[] = [
+  { from: "04:15", to: "04:35", freq: 20 }, { from: "04:35", to: "05:15", freq: 15 },
+  { from: "05:15", to: "06:54", freq: 11 }, { from: "06:54", to: "12:20", freq: 10 },
+  { from: "12:20", to: "16:45", freq: 8 },  { from: "16:45", to: "23:05", freq: 10 }
+];
+const PURPLE_CHALLAGHATTA_TUE_FRI: TimeBlock[] = [
+  { from: "05:00", to: "05:20", freq: 20 }, { from: "05:20", to: "06:00", freq: 15 },
+  { from: "06:00", to: "06:54", freq: 11 }, { from: "06:54", to: "12:20", freq: 10 },
+  { from: "12:20", to: "16:02", freq: 8 },  { from: "16:02", to: "23:05", freq: 10 }
+];
+const PURPLE_CHALLAGHATTA_SAT: TimeBlock[] = [
+  { from: "05:00", to: "05:20", freq: 20 }, { from: "05:20", to: "06:00", freq: 15 },
+  { from: "06:00", to: "06:54", freq: 11 }, { from: "06:54", to: "12:20", freq: 10 },
+  { from: "12:20", to: "16:45", freq: 8 },  { from: "16:45", to: "23:05", freq: 10 }
+];
+const PURPLE_CHALLAGHATTA_SUN: TimeBlock[] = [
+  { from: "07:00", to: "07:50", freq: 15 }, { from: "07:50", to: "12:00", freq: 10 },
+  { from: "12:00", to: "21:28", freq: 8 },  { from: "21:28", to: "23:05", freq: 10 }
+];
+
+const PURPLE_WHITEFIELD_MON: TimeBlock[] = [
+  { from: "04:15", to: "04:35", freq: 20 }, { from: "04:35", to: "05:00", freq: 13 },
+  { from: "05:00", to: "10:57", freq: 10 }, { from: "10:57", to: "15:21", freq: 8 },
+  { from: "15:21", to: "22:01", freq: 10 }, { from: "22:01", to: "22:45", freq: 15 }
+];
+const PURPLE_WHITEFIELD_TUE_FRI: TimeBlock[] = [
+  { from: "05:00", to: "05:20", freq: 20 }, { from: "05:20", to: "10:57", freq: 10 },
+  { from: "10:57", to: "15:21", freq: 8 },  { from: "15:21", to: "22:01", freq: 10 },
+  { from: "22:01", to: "22:45", freq: 15 }
+];
+const PURPLE_WHITEFIELD_SAT: TimeBlock[] = PURPLE_WHITEFIELD_TUE_FRI;
+const PURPLE_WHITEFIELD_SUN: TimeBlock[] = [
+  { from: "07:00", to: "10:33", freq: 10 }, { from: "10:33", to: "20:01", freq: 8 },
+  { from: "20:01", to: "22:31", freq: 10 }, { from: "22:31", to: "22:45", freq: 14 }
+];
+
+const GREEN_MADAVARA_MON: TimeBlock[] = [
+  { from: "04:15", to: "04:40", freq: 25 }, { from: "05:00", to: "06:15", freq: 15 },
+  { from: "06:15", to: "10:25", freq: 10 }, { from: "10:25", to: "10:39", freq: 7 },
+  { from: "10:39", to: "15:51", freq: 8 },  { from: "15:51", to: "19:44", freq: 10 },
+  { from: "19:44", to: "20:24", freq: 8 },  { from: "20:24", to: "22:04", freq: 10 },
+  { from: "22:04", to: "22:40", freq: 10 }, { from: "22:40", to: "22:57", freq: 15 }
+];
+const GREEN_MADAVARA_TUE_FRI: TimeBlock[] = [
+  { from: "05:00", to: "06:15", freq: 15 }, { from: "06:15", to: "10:25", freq: 11 },
+  { from: "10:25", to: "10:39", freq: 7 },  { from: "10:39", to: "15:51", freq: 8 },
+  { from: "15:51", to: "19:44", freq: 10 }, { from: "19:44", to: "20:24", freq: 8 },
+  { from: "20:24", to: "22:04", freq: 10 }, { from: "22:04", to: "22:40", freq: 10 },
+  { from: "22:40", to: "22:57", freq: 15 }
+];
+const GREEN_MADAVARA_SAT: TimeBlock[] = [
+  { from: "05:00", to: "06:15", freq: 15 }, { from: "06:15", to: "10:39", freq: 11 },
+  { from: "10:39", to: "16:01", freq: 8 },  { from: "16:01", to: "16:23", freq: 5.5 },
+  { from: "16:23", to: "19:52", freq: 11 }, { from: "19:52", to: "20:24", freq: 8 },
+  { from: "20:24", to: "22:04", freq: 10 }, { from: "22:04", to: "23:00", freq: 15 }
+];
+const GREEN_MADAVARA_SUN: TimeBlock[] = [
+  { from: "07:00", to: "10:47", freq: 10 }, { from: "10:47", to: "20:15", freq: 8 },
+  { from: "20:15", to: "22:05", freq: 10 }, { from: "22:05", to: "22:29", freq: 12 },
+  { from: "22:29", to: "23:00", freq: 15 }
+];
+
+const GREEN_SILK_INSTITUTE_MON: TimeBlock[] = [
+  { from: "04:15", to: "05:00", freq: 20 }, { from: "05:00", to: "07:00", freq: 15 },
+  { from: "07:00", to: "11:09", freq: 10 }, { from: "11:09", to: "16:48", freq: 8 },
+  { from: "16:48", to: "20:29", freq: 10 }, { from: "20:29", to: "21:30", freq: 8 },
+  { from: "21:30", to: "22:40", freq: 10 }, { from: "22:40", to: "23:05", freq: 12.5 }
+];
+const GREEN_SILK_INSTITUTE_TUE_FRI: TimeBlock[] = [
+  { from: "05:00", to: "07:00", freq: 15 }, { from: "07:00", to: "11:09", freq: 10 },
+  { from: "11:09", to: "16:48", freq: 8 },  { from: "16:48", to: "20:29", freq: 10 },
+  { from: "20:29", to: "21:30", freq: 8 },  { from: "21:30", to: "22:40", freq: 10 },
+  { from: "22:40", to: "23:05", freq: 12.5 }
+];
+const GREEN_SILK_INSTITUTE_SAT: TimeBlock[] = [
+  { from: "05:00", to: "07:00", freq: 15 }, { from: "07:00", to: "11:53", freq: 11 },
+  { from: "11:53", to: "16:48", freq: 8 },  { from: "16:48", to: "20:57", freq: 11 },
+  { from: "20:57", to: "21:30", freq: 8 },  { from: "21:30", to: "22:40", freq: 10 },
+  { from: "22:40", to: "23:05", freq: 12.5 }
+];
+const GREEN_SILK_INSTITUTE_SUN: TimeBlock[] = [
+  { from: "07:00", to: "07:58", freq: 15 }, { from: "07:58", to: "12:08", freq: 10 },
+  { from: "12:08", to: "21:44", freq: 8 },  { from: "21:44", to: "22:44", freq: 10 },
+  { from: "22:44", to: "23:05", freq: 12 }
+];
+
+function timeToMins(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
 }
 
-// Purple line — terminal departures
-// Forward:  Challaghatta (order 0) → Kadugodi/Whitefield (order 32)
-// Reverse:  Kadugodi/Whitefield    → Challaghatta
-export const PURPLE_FORWARD_DEPS: number[] = generateDepartures(5 * 60,       22 * 60 + 45);
-export const PURPLE_REVERSE_DEPS: number[] = generateDepartures(5 * 60,       22 * 60 + 45);
+function generateDepartures(blocks: TimeBlock[]): number[] {
+  const times: number[] = [];
+  for (const block of blocks) {
+    let t = timeToMins(block.from);
+    const end = timeToMins(block.to);
+    while (t < end) {
+      times.push(Math.round(t));
+      t += block.freq;
+    }
+  }
+  return [...new Set(times)].sort((a, b) => a - b);
+}
 
-// Green line — terminal departures
-// Forward:  Madavara (order 0) → Silk Institute (order 31)
-// Reverse:  Silk Institute     → Madavara
-export const GREEN_FORWARD_DEPS: number[] = generateDepartures(5 * 60 + 5,   22 * 60 + 50);
-export const GREEN_REVERSE_DEPS: number[] = generateDepartures(5 * 60 + 5,   22 * 60 + 50);
+function getTimetableForToday() {
+  const day = new Date().getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  let pC, pW, gM, gS;
+  if (day === 0) {
+    pC = PURPLE_CHALLAGHATTA_SUN; pW = PURPLE_WHITEFIELD_SUN;
+    gM = GREEN_MADAVARA_SUN; gS = GREEN_SILK_INSTITUTE_SUN;
+  } else if (day === 1) {
+    pC = PURPLE_CHALLAGHATTA_MON; pW = PURPLE_WHITEFIELD_MON;
+    gM = GREEN_MADAVARA_MON; gS = GREEN_SILK_INSTITUTE_MON;
+  } else if (day === 6) {
+    pC = PURPLE_CHALLAGHATTA_SAT; pW = PURPLE_WHITEFIELD_SAT;
+    gM = GREEN_MADAVARA_SAT; gS = GREEN_SILK_INSTITUTE_SAT;
+  } else {
+    pC = PURPLE_CHALLAGHATTA_TUE_FRI; pW = PURPLE_WHITEFIELD_TUE_FRI;
+    gM = GREEN_MADAVARA_TUE_FRI; gS = GREEN_SILK_INSTITUTE_TUE_FRI;
+  }
 
-export const TIMETABLE = {
-  purple: { forward: PURPLE_FORWARD_DEPS, reverse: PURPLE_REVERSE_DEPS },
-  green:  { forward: GREEN_FORWARD_DEPS,  reverse: GREEN_REVERSE_DEPS  },
-};
+  return {
+    purple: { forward: generateDepartures(pC), reverse: generateDepartures(pW) },
+    green:  { forward: generateDepartures(gM),  reverse: generateDepartures(gS)  },
+  };
+}
+
+export const TIMETABLE = getTimetableForToday();
 
 // ── Utility functions ──
 
