@@ -1,10 +1,25 @@
+<div align="center">
+
 # Namma Metro — Journey Companion
 
 A complete, modern, full-stack application designed to provide commuters with an intelligent and seamless metro travel experience. It features Dijkstra-based route planning, real-time schedule computation, and live journey tracking with context-aware notifications.
 
+<img src="https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
+<img src="https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white" />
+<img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+<img src="https://img.shields.io/badge/Zustand-443E38?style=for-the-badge&logo=react&logoColor=white" />
+<img src="https://img.shields.io/badge/React_Navigation-6B52AE?style=for-the-badge&logo=react&logoColor=white" />
+<img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
+<img src="https://img.shields.io/badge/WebSockets-010101?style=for-the-badge&logo=socketdotio&logoColor=white" />
+<img src="https://img.shields.io/badge/Pydantic-E92063?style=for-the-badge&logo=pydantic&logoColor=white" />
+<img src="https://img.shields.io/badge/BeautifulSoup4-4B8BBE?style=for-the-badge&logo=python&logoColor=white" />
+
+</div>
+
+
 ---
 
-## 📖 Vision & Problem Statement
+## Vision & Problem Statement
 Navigating urban transit can be stressful due to lack of real-time visibility, confusing interchanges, and unpredictable crowd levels. The **Namma Metro Journey Companion** solves this by providing commuters with an intuitive mobile app backed by an intelligent backend that computes train positions dynamically based on official schedules. The system tracks the user's journey in real-time, offering proactive instructions (e.g., "Change to Green Line at Majestic") and digital QR ticketing.
 
 ## ✨ Actual Features
@@ -18,16 +33,16 @@ Navigating urban transit can be stressful due to lack of real-time visibility, c
 - **Data Scraping Fallback:** Automatically scrapes official schedules, with static data fallbacks for guaranteed uptime.
 - **Planned:** AI-based crowd estimation analytics.
 
-## 🚀 Getting Started & Backend Usage
+## Getting Started & Backend Usage
 If you are setting up the project for the first time, or need to connect your mobile app to the local backend, **please read the [Backend Setup & Connections Guide](BACKEND_USAGE.md)**. This guide covers `.env` setup, IP addresses, and manual tasks required by the developer.
 
-## 🛠 Tech Stack
+## Tech Stack
 | Component | Technologies |
 | :--- | :--- |
 | **Mobile (Mobile App)** | React Native, Expo, TypeScript, React Query, Zustand, React Navigation |
 | **Backend (API Server)** | Python 3, FastAPI, Uvicorn, WebSockets, Pydantic, BeautifulSoup4 |
 
-## 🏗 Overall Architecture
+## Overall Architecture
 
 ```mermaid
 graph TD
@@ -70,7 +85,7 @@ graph TD
     Sim --> Schedule
 ```
 
-### 🔄 Frontend ↔ Backend Data Flow
+### Frontend ↔ Backend Data Flow
 1. **Initial Load:** The frontend uses React Query to fetch the station list and system health from the backend REST API.
 2. **Planning:** User inputs source and destination. The backend runs Dijkstra's algorithm and queries the `ScheduleEngine` to estimate travel time and next train arrivals, returning the route segments.
 3. **Ticketing:** A ticket is purchased via REST API. The backend registers an `active_journey`.
@@ -81,7 +96,7 @@ graph TD
 - `mobile/` - The React Native (Expo) frontend application. (Documented in `frontend/README.md`)
 - `backend/` - The FastAPI Python server. (Documented in `backend/README.md`)
 
-## 🚀 Setup & Run Commands
+## Setup & Run Commands
 
 ### Backend (FastAPI)
 ```bash
@@ -101,7 +116,7 @@ npm start
 ```
 *Use the Expo Go app on your phone, or run via emulator.*
 
-## 🌩 Deployment
+## Deployment
 
 ### Backend
 
@@ -127,13 +142,13 @@ cd mobile
 eas build -p all
 ```
 
-## 🗺 Roadmap
+## Roadmap
 - [ ] Implement actual AI Crowd Estimation (currently placeholder).
 - [ ] Add support for the upcoming Yellow Line.
 - [ ] Multi-language support (Kannada/English UI).
 - [ ] Integration with a future official BMRC Live API instead of schedule scraping.
 
-## 📚 Detailed Documentation
+## Detailed Documentation
 Please refer to the sub-READMEs for specific, detailed information on each stack layer:
 - **[Frontend Documentation](mobile/README.md)**
 - **[Backend Documentation](backend/README.md)**
