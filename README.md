@@ -9,12 +9,17 @@ Navigating urban transit can be stressful due to lack of real-time visibility, c
 
 ## ✨ Actual Features
 - **Intelligent Route Planning:** Calculates the fastest path between stations using Dijkstra's algorithm, accounting for interchanges.
-- **Live Schedule Computation:** Determines train arrival times and current positions dynamically using BMRC schedule data.
+- **Real Timetable Integration:** Planners and routing use exact BMRCL schedules (peak/off-peak frequencies) rather than estimating from the current clock.
+- **Multi-Option Smart Journey Planner:** Lists all upcoming trains that haven't departed yet, with exact arrival/departure times at every stop.
 - **Digital Ticketing:** QR-code based ticket generation.
-- **Real-Time Journey Tracking:** Uses WebSockets to push live travel updates and passenger instructions to the frontend.
+- **Live Journey Tracking & Companion:** Tracks the journey and provides proactive instructions (e.g., "Change to Green Line at Majestic").
+- **Local & Remote Alert Engines:** Client-side fallback engine fires schedule-accurate alerts (boarding reminders, walk directions) even when offline.
 - **Interactive Metro Map:** A visual interface for the Purple and Green lines.
 - **Data Scraping Fallback:** Automatically scrapes official schedules, with static data fallbacks for guaranteed uptime.
 - **Planned:** AI-based crowd estimation analytics.
+
+## 🚀 Getting Started & Backend Usage
+If you are setting up the project for the first time, or need to connect your mobile app to the local backend, **please read the [Backend Setup & Connections Guide](BACKEND_USAGE.md)**. This guide covers `.env` setup, IP addresses, and manual tasks required by the developer.
 
 ## 🛠 Tech Stack
 | Component | Technologies |

@@ -1,92 +1,153 @@
 /**
- * Route Planner Screen — Plan routes without ticket purchase.
- * Uses graph-based routing from the backend.
+ * Smart Journey Planner — Real timetable-based multi-option journey planner.
+ * Shows ALL upcoming train options from source to destination.
+ * Departed trains auto-expire. Times are real BMRCL schedule times.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { Header } from '../../shared/components/Header';
 import { StationSelector } from '../../shared/components/StationSelector';
 import { planJourney } from '../../data/api/metroApi';
-import { getStationName } from '../../data/stations/stationData';
-import { findRouteOffline } from '../../data/stations/routing';
+import { getUpcomingJourneys, type UpcomingJourney } from '../../data/stations/routing';
+import { nowMinutes } from '../../data/stations/timetable';
 import { colors, spacing, borderRadius, shadows } from '../../navigation/theme';
-import type { JourneyPlanResponse, RouteSegment } from '../../shared/types';
-import { useRouteStore } from './routeStore';
 
 export default function RoutePlannerScreen() {
   const [source, setSource] = useState('');
   const [dest, setDest] = useState('');
-  const [result, setResult] = useState<JourneyPlanResponse | null>(null);
+  const [journeys, setJourneys] = useState<UpcomingJourney[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { cacheRoute, getCachedRoute } = useRouteStore();
+  const loadJourneys = useCallback(async (src: string, dst: string, isRefresh = false) => {
+    if (!src || !dst) return;
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    setError('');
+
+    try {
+      // Offline fallback: try backend first if needed, here we just use the robust local engine
+      let journeyList: UpcomingJourney[] = [];
+      try {
+        await planJourney(src, dst); // optional: test backend
+        journeyList = getUpcomingJourneys(src, dst, 10);
+      } catch {
+        journeyList = getUpcomingJourneys(src, dst, 10);
+      }
+
+      // Keep only future trains
+      const available = journeyList.filter(j => j.is_available);
+      setJourneys(available);
+      setLastRefresh(new Date());
+    } catch (e) {
+      setError('Could not load journey options. Please try again.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  const handleSearch = useCallback(() => {
+    if (!source || !dest) return;
+    setExpandedIdx(null);
+    loadJourneys(source, dest);
+  }, [source, dest, loadJourneys]);
+
+  const handleRefresh = useCallback(() => {
+    loadJourneys(source, dest, true);
+  }, [source, dest, loadJourneys]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    if (journeys.length === 0) return;
+    if (refreshTimer.current) clearInterval(refreshTimer.current);
+    
+    refreshTimer.current = setInterval(() => {
+      const now = nowMinutes();
+      setJourneys(prev => {
+        const updated = prev.filter(j => {
+          const parts = j.departure_time.split(' ');
+          if (parts.length < 2) return false;
+          const [time, period] = [parts[0], parts[1].toUpperCase()];
+          const [h, m] = time.split(':').map(Number);
+          let h24 = h;
+          if (period === 'PM' && h !== 12) h24 = h + 12;
+          if (period === 'AM' && h === 12) h24 = 0;
+          return (h24 * 60 + m) >= now;
+        });
+        return updated.map((j, i) => ({ ...j, index: i + 1 }));
+      });
+    }, 30_000);
+
+    return () => {
+      if (refreshTimer.current) clearInterval(refreshTimer.current);
+    };
+  }, [journeys.length]);
 
   const swapStations = () => {
     const tmp = source;
     setSource(dest);
     setDest(tmp);
-    setResult(null);
+    setJourneys([]);
   };
 
-  const handleSearch = async () => {
-    if (!source || !dest) return;
-    setLoading(true);
-    setError('');
+  const minutesUntil = (timeStr: string): number => {
+    const parts = timeStr.split(' ');
+    if (parts.length < 2) return 0;
+    const [time, period] = [parts[0], parts[1].toUpperCase()];
+    const [h, m] = time.split(':').map(Number);
+    let h24 = h;
+    if (period === 'PM' && h !== 12) h24 = h + 12;
+    if (period === 'AM' && h === 12) h24 = 0;
+    return (h24 * 60 + m) - nowMinutes();
+  };
 
-    try {
-      const data = await planJourney(source, dest);
-      setResult(data);
-      cacheRoute(source, dest, data);
-    } catch (e) {
-      // Try cached route
-      const cached = getCachedRoute(source, dest);
-      if (cached) {
-        setResult(cached);
-        setError('Offline mode: Showing cached route data.');
-      } else {
-        // Fallback to offline graph routing
-        const offlineRoute = findRouteOffline(source, dest);
-        if (offlineRoute) {
-          const fallbackData = { route: offlineRoute, next_trains: [] };
-          setResult(fallbackData);
-          cacheRoute(source, dest, fallbackData);
-          setError('Offline mode: Using offline routing estimation.');
-        } else {
-          setError('Could not connect to server and no offline route found.');
-          setResult(null);
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
+  const getStatusText = (journey: UpcomingJourney) => {
+    const mins = minutesUntil(journey.departure_time);
+    if (mins <= 0) return { text: 'Departing now', color: colors.status.error };
+    if (mins <= 2) return { text: `${mins} min`, color: colors.status.error };
+    if (mins <= 5) return { text: `${mins} min`, color: colors.status.warning };
+    return { text: `${mins} min`, color: colors.status.success };
   };
 
   return (
     <View style={styles.container}>
       <Header title="Smart Journey Planner" />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.purple[600]]}
+            tintColor={colors.purple[600]}
+          />
+        }
+      >
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>🧭 Plan Your Route</Text>
-          <Text style={styles.cardSubtitle}>
-            Find the best route with schedule-computed timings
-          </Text>
+          <Text style={styles.cardTitle}>🧭 Find Your Train</Text>
+          <Text style={styles.cardSubtitle}>Real timetable · Auto-refreshes every 30s</Text>
 
           <View style={{ position: 'relative' }}>
             <StationSelector
-              label="Source Station"
+              label="From Station"
               value={source}
-              onChange={(v) => { setSource(v); setResult(null); }}
+              onChange={(v) => { setSource(v); setJourneys([]); }}
               excludeId={dest}
             />
             <View style={{ height: spacing.lg }} />
             <StationSelector
-              label="Destination Station"
+              label="To Station"
               value={dest}
-              onChange={(v) => { setDest(v); setResult(null); }}
+              onChange={(v) => { setDest(v); setJourneys([]); }}
               excludeId={source}
             />
             <TouchableOpacity style={styles.swapBtn} onPress={swapStations}>
@@ -102,7 +163,7 @@ export default function RoutePlannerScreen() {
             {loading ? (
               <ActivityIndicator color={colors.neutral[0]} />
             ) : (
-              <Text style={styles.btnText}>Find Routes</Text>
+              <Text style={styles.btnText}>Show All Trains →</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -113,100 +174,147 @@ export default function RoutePlannerScreen() {
           </View>
         ) : null}
 
-        {result && (
-          <View style={[styles.card, { marginTop: 0, padding: 0, overflow: 'hidden' }]}>
-            {/* Result Header */}
-            <View style={styles.resultHeader}>
-              <Text style={styles.resultTitle}>Recommended Route</Text>
-              <View style={styles.fastestBadge}>
-                <Text style={styles.fastestText}>Fastest</Text>
-              </View>
-            </View>
+        {lastRefresh && journeys.length > 0 && (
+          <View style={styles.refreshInfo}>
+            <Text style={styles.refreshText}>
+              🕒 Updated {lastRefresh.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} · Pull to refresh
+            </Text>
+          </View>
+        )}
 
-            {/* Stats Row */}
-            <View style={styles.statsRow}>
-              <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Duration</Text>
-                <Text style={styles.statValue}>
-                  {result.route.total_time_minutes}
-                  <Text style={{ fontSize: 12 }}> min</Text>
-                </Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Stations</Text>
-                <Text style={styles.statValue}>{result.route.stations_count}</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Fare</Text>
-                <Text style={styles.statValue}>₹{result.route.fare_estimate}</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Changes</Text>
-                <Text style={[
-                  styles.statValue,
-                  { color: result.route.interchange_count > 0 ? colors.status.warning : colors.status.success },
-                ]}>
-                  {result.route.interchange_count}
-                </Text>
-              </View>
-            </View>
+        {journeys.length > 0 && (
+          <View style={styles.journeyList}>
+            <Text style={styles.listTitle}>
+              {journeys.length} upcoming train{journeys.length !== 1 ? 's' : ''} found
+            </Text>
 
-            {/* Route Segments */}
-            <View style={{ padding: spacing.lg }}>
-              {result.route.segments.map((seg: RouteSegment, i: number) => {
-                const lineColor = seg.line === 'green' ? colors.green[500] : colors.purple[600];
-                return (
-                  <View key={i} style={[styles.segmentContainer, { borderLeftColor: lineColor }]}>
-                    <Text style={[styles.lineTitle, { color: lineColor }]}>
-                      {seg.line} Line
-                    </Text>
-                    <View style={styles.stationRow}>
-                      <View style={[styles.dot, { backgroundColor: lineColor }]} />
-                      <Text style={styles.stationName}>{seg.from_station}</Text>
-                      <Text style={styles.timeText}>{seg.departure_time || ''}</Text>
+            {journeys.map((journey, idx) => {
+              const isExpanded = expandedIdx === idx;
+              const status = getStatusText(journey);
+              const firstSeg = journey.segments[0];
+              const lastSeg = journey.segments[journey.segments.length - 1];
+              const hasInterchange = journey.segments.length > 1;
+
+              return (
+                <TouchableOpacity
+                  key={idx}
+                  style={[styles.journeyCard, isExpanded && styles.journeyCardExpanded]}
+                  onPress={() => setExpandedIdx(isExpanded ? null : idx)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.journeyHeader}>
+                    <View style={styles.journeyIndexBadge}>
+                      <Text style={styles.journeyIndexText}>{journey.index}</Text>
                     </View>
-                    {seg.stations && seg.stations.length > 2 && (
-                      <View style={styles.stationCountRow}>
-                        <Text style={styles.stationCountText}>
-                          ⬇ {seg.stations.length - 2} stations · {seg.travel_time_minutes} min
-                        </Text>
+
+                    <View style={styles.journeyTimes}>
+                      <View style={styles.timelineRow}>
+                        <View style={styles.timelinePoint}>
+                          <Text style={styles.timelineTime}>{firstSeg.departure_time}</Text>
+                          <Text style={styles.timelineStation} numberOfLines={1}>
+                            {firstSeg.from_station}
+                          </Text>
+                        </View>
+
+                        {hasInterchange && (
+                          <>
+                            <Text style={styles.timelineArrow}>→</Text>
+                            <View style={styles.timelinePoint}>
+                              <Text style={styles.timelineTime}>{firstSeg.arrival_time}</Text>
+                              <Text style={[styles.timelineStation, { color: colors.purple[500] }]} numberOfLines={1}>
+                                Majestic 🔄
+                              </Text>
+                            </View>
+                            <Text style={styles.timelineArrow}>→</Text>
+                            <View style={styles.timelinePoint}>
+                              <Text style={styles.timelineTime}>{journey.segments[1].departure_time}</Text>
+                              <Text style={styles.timelineStation} numberOfLines={1}>
+                                board ↗
+                              </Text>
+                            </View>
+                          </>
+                        )}
+
+                        <Text style={styles.timelineArrow}>→</Text>
+                        <View style={styles.timelinePoint}>
+                          <Text style={[styles.timelineTime, { color: colors.green[600] }]}>
+                            {lastSeg.arrival_time}
+                          </Text>
+                          <Text style={styles.timelineStation} numberOfLines={1}>
+                            {lastSeg.to_station}
+                          </Text>
+                        </View>
                       </View>
-                    )}
-                    <View style={styles.stationRow}>
-                      <View style={[styles.dot, {
-                        backgroundColor: colors.neutral[0], borderColor: lineColor, borderWidth: 2,
-                      }]} />
-                      <Text style={styles.stationName}>{seg.to_station}</Text>
-                      <Text style={styles.timeText}>{seg.arrival_time || ''}</Text>
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
 
-            {/* Next Trains */}
-            {result.next_trains && result.next_trains.length > 0 && (
-              <View style={styles.nextTrainsSection}>
-                <Text style={styles.nextTrainsTitle}>Next Departures</Text>
-                {result.next_trains.slice(0, 3).map((train, i) => (
-                  <View key={i} style={styles.trainRow}>
-                    <Text style={styles.trainTime}>{train.arrival_time}</Text>
-                    <Text style={styles.trainDest}>→ {train.destination}</Text>
-                    <View style={[
-                      styles.trainStatus,
-                      { backgroundColor: train.status === 'Arriving' ? colors.green[100] : colors.neutral[100] },
-                    ]}>
-                      <Text style={[
-                        styles.trainStatusText,
-                        { color: train.status === 'Arriving' ? colors.green[600] : colors.text.secondary },
-                      ]}>
-                        {train.status === 'Arriving' ? 'Arriving' : `${train.minutes_away} min`}
-                      </Text>
+                      <View style={styles.statsRow}>
+                        <Text style={styles.statChip}>⏱ {journey.total_time_minutes} min</Text>
+                        <Text style={styles.statChip}>🚉 {journey.stations_count} stations</Text>
+                        <Text style={styles.statChip}>₹{journey.fare_estimate}</Text>
+                        {hasInterchange && (
+                          <Text style={[styles.statChip, { color: colors.status.warning }]}>🔄 1 change</Text>
+                        )}
+                      </View>
+                    </View>
+
+                    <View style={[styles.statusBadge, { backgroundColor: `${status.color}20` }]}>
+                      <Text style={[styles.statusText, { color: status.color }]}>{status.text}</Text>
                     </View>
                   </View>
-                ))}
-              </View>
-            )}
+
+                  {isExpanded && (
+                    <View style={styles.expandedDetail}>
+                      {journey.segments.map((seg, si) => {
+                        const lc = seg.line === 'green' ? colors.green[500] : colors.purple[600];
+                        return (
+                          <View key={si}>
+                            <View style={[styles.segDetail, { borderLeftColor: lc }]}>
+                              <Text style={[styles.segLine, { color: lc }]}>
+                                {seg.line.charAt(0).toUpperCase() + seg.line.slice(1)} Line
+                              </Text>
+                              <View style={styles.segRow}>
+                                <View style={[styles.segDot, { backgroundColor: lc }]} />
+                                <Text style={styles.segStation}>{seg.from_station}</Text>
+                                <Text style={styles.segTime}>{seg.departure_time}</Text>
+                              </View>
+                              {seg.stations && seg.stations.length > 2 && (
+                                <Text style={styles.segIntermediate}>
+                                  ⬇ {seg.stations.length - 2} intermediate stations · {seg.travel_time_minutes} min
+                                </Text>
+                              )}
+                              <View style={styles.segRow}>
+                                <View style={[styles.segDot, { backgroundColor: colors.neutral[0], borderColor: lc, borderWidth: 2 }]} />
+                                <Text style={styles.segStation}>{seg.to_station}</Text>
+                                <Text style={styles.segTime}>{seg.arrival_time}</Text>
+                              </View>
+                            </View>
+
+                            {si < journey.segments.length - 1 && (
+                              <View style={styles.interchangeNote}>
+                                <Text style={styles.interchangeNoteText}>
+                                  🔄 Change trains at Majestic · Walk ~3 min to {journey.segments[si + 1].line} Line platform
+                                </Text>
+                                <Text style={styles.interchangeNoteText}>
+                                  🕒 Next {journey.segments[si + 1].line} Line train: {journey.segments[si + 1].departure_time}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
+                  <Text style={styles.expandHint}>{isExpanded ? '▲ Less' : '▼ Details'}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        {journeys.length === 0 && !loading && !error && source && dest && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>🌙</Text>
+            <Text style={styles.emptyTitle}>No trains available</Text>
+            <Text style={styles.emptyText}>Metro services have ended. First trains at 05:00 AM.</Text>
           </View>
         )}
       </ScrollView>
@@ -240,39 +348,58 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   errorText: { fontSize: 13, color: colors.status.error },
-  resultHeader: {
-    backgroundColor: colors.purple[100], padding: spacing.lg,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  refreshInfo: { alignItems: 'center', marginBottom: spacing.sm },
+  refreshText: { fontSize: 11, color: colors.text.muted },
+  journeyList: { gap: spacing.sm },
+  listTitle: {
+    fontSize: 13, fontWeight: '700', color: colors.text.secondary,
+    marginBottom: spacing.sm, textTransform: 'uppercase', letterSpacing: 0.5,
   },
-  resultTitle: { fontSize: 15, fontWeight: '700', color: colors.purple[600] },
-  fastestBadge: {
-    backgroundColor: colors.status.success, paddingHorizontal: 8,
-    paddingVertical: 4, borderRadius: 12,
+  journeyCard: {
+    backgroundColor: colors.surface, borderRadius: borderRadius.lg,
+    padding: spacing.lg, ...shadows.sm,
+    borderWidth: 1, borderColor: colors.neutral[100],
   },
-  fastestText: { color: colors.neutral[0], fontSize: 10, fontWeight: '700' },
-  statsRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
-  statBox: { flex: 1, padding: spacing.lg, alignItems: 'center' },
-  statLabel: { fontSize: 11, color: colors.text.muted, marginBottom: 4 },
-  statValue: { fontSize: 18, fontWeight: '700', color: colors.text.primary },
-  segmentContainer: { borderLeftWidth: 4, paddingLeft: spacing.lg, marginBottom: spacing.lg, marginLeft: 8 },
-  lineTitle: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8 },
-  stationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  dot: { width: 10, height: 10, borderRadius: 5, marginRight: 12 },
-  stationName: { fontSize: 15, fontWeight: '500', color: colors.text.primary, flex: 1 },
-  timeText: { fontSize: 12, color: colors.text.muted },
-  stationCountRow: { paddingLeft: 22, marginBottom: 12 },
-  stationCountText: { fontSize: 12, color: colors.text.muted },
-  nextTrainsSection: {
-    borderTopWidth: 1, borderTopColor: colors.neutral[100],
-    padding: spacing.lg,
+  journeyCardExpanded: { borderColor: colors.purple[300], ...shadows.md },
+  journeyHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  journeyIndexBadge: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: colors.purple[100], alignItems: 'center', justifyContent: 'center',
+    marginTop: 2,
   },
-  nextTrainsTitle: { fontSize: 13, fontWeight: '700', color: colors.text.primary, marginBottom: spacing.sm },
-  trainRow: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 8,
-    borderBottomWidth: 1, borderBottomColor: colors.neutral[100],
+  journeyIndexText: { fontSize: 13, fontWeight: '700', color: colors.purple[700] },
+  journeyTimes: { flex: 1 },
+  timelineRow: { flexDirection: 'row', alignItems: 'flex-start', flexWrap: 'wrap', gap: 4 },
+  timelinePoint: { alignItems: 'center', maxWidth: 70 },
+  timelineTime: { fontSize: 13, fontWeight: '700', color: colors.text.primary },
+  timelineStation: { fontSize: 10, color: colors.text.secondary, textAlign: 'center' },
+  timelineArrow: { fontSize: 14, color: colors.text.muted, marginTop: 4, marginHorizontal: 2 },
+  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: spacing.sm },
+  statChip: {
+    fontSize: 11, color: colors.text.secondary,
+    backgroundColor: colors.neutral[50], paddingHorizontal: 6,
+    paddingVertical: 2, borderRadius: 8,
   },
-  trainTime: { fontSize: 13, fontWeight: '600', color: colors.text.primary, width: 80 },
-  trainDest: { fontSize: 12, color: colors.text.secondary, flex: 1 },
-  trainStatus: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  trainStatusText: { fontSize: 11, fontWeight: '600' },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, alignSelf: 'flex-start' },
+  statusText: { fontSize: 11, fontWeight: '700' },
+  expandHint: { fontSize: 11, color: colors.text.muted, textAlign: 'center', marginTop: spacing.sm },
+  expandedDetail: {
+    marginTop: spacing.lg, borderTopWidth: 1, borderTopColor: colors.neutral[100], paddingTop: spacing.lg,
+  },
+  segDetail: { borderLeftWidth: 3, paddingLeft: spacing.md, marginBottom: spacing.md },
+  segLine: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8 },
+  segRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  segDot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
+  segStation: { flex: 1, fontSize: 14, fontWeight: '500', color: colors.text.primary },
+  segTime: { fontSize: 12, color: colors.text.secondary, fontWeight: '600' },
+  segIntermediate: { fontSize: 12, color: colors.text.muted, paddingLeft: 20, marginBottom: 8 },
+  interchangeNote: {
+    backgroundColor: colors.purple[50], borderRadius: borderRadius.sm,
+    padding: spacing.md, marginBottom: spacing.md,
+  },
+  interchangeNoteText: { fontSize: 12, color: colors.purple[700], marginBottom: 2 },
+  emptyState: { alignItems: 'center', paddingVertical: spacing.xxl },
+  emptyIcon: { fontSize: 40, marginBottom: spacing.md },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: colors.text.primary, marginBottom: spacing.sm },
+  emptyText: { fontSize: 13, color: colors.text.secondary, textAlign: 'center' },
 });

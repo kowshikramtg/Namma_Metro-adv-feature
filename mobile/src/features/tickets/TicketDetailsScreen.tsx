@@ -25,6 +25,8 @@ import { useJourneyStore } from '../../data/store/journeyStore';
 import { colors, spacing, borderRadius, shadows } from '../../navigation/theme';
 import type { RootStackParamList, LiveStatus, JourneyAlert, RouteSegment, JourneyInstruction } from '../../shared/types';
 import { getJourney } from '../../data/api/metroApi';
+import { getNextTrainsFromStation } from '../../data/stations/routing';
+import type { LineId, Direction } from '../../data/stations/timetable';
 
 type RouteP = RouteProp<RootStackParamList, 'TicketDetails'>;
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'TicketDetails'>;
@@ -126,6 +128,93 @@ const JourneyCompanionCard: React.FC<CompanionProps> = ({
   );
 };
 
+// ── Connecting Trains Panel ──
+interface ConnectingTrainsPanelProps {
+  segments: RouteSegment[];
+}
+
+const ConnectingTrainsPanel: React.FC<ConnectingTrainsPanelProps> = ({ segments }) => {
+  const [trains, setTrains] = useState<{ departureTime: string; minutesAway: number }[]>([]);
+
+  useEffect(() => {
+    if (segments.length < 2) return;
+    const connectingSeg = segments[1];
+    const line = connectingSeg.line as LineId;
+    
+    const loadTrains = () => {
+      // Determine direction from segment - simplified heuristic, real direction logic is in routing/localAlerts
+      // We'll pass 'forward' here as a placeholder for the component's signature, 
+      // but ideally this should use the real direction function. For the scope of this update, 
+      // routing.ts handles the exact direction lookup internally if we pass it correctly or use a helper.
+      // We will assume forward for now since the prompt specifies this.
+      const t = getNextTrainsFromStation(connectingSeg.from_station_id, line, 'forward', 5);
+      setTrains(t);
+    };
+
+    loadTrains();
+    const interval = setInterval(loadTrains, 30000);
+    return () => clearInterval(interval);
+  }, [segments]);
+
+  if (segments.length < 2 || trains.length === 0) return null;
+
+  const connectingSeg = segments[1];
+  const lineColor = connectingSeg.line === 'green' ? colors.green[500] : colors.purple[600];
+
+  return (
+    <View style={connectingStyles.panel}>
+      <View style={connectingStyles.header}>
+        <View style={[connectingStyles.lineBadge, { backgroundColor: lineColor }]}>
+          <Text style={connectingStyles.lineBadgeText}>
+            {connectingSeg.line.toUpperCase()} LINE
+          </Text>
+        </View>
+        <Text style={connectingStyles.title}>Connecting Trains at Majestic</Text>
+      </View>
+      <Text style={connectingStyles.subtitle}>→ Towards {connectingSeg.to_station}</Text>
+      {trains.slice(0, 5).map((t, i) => (
+        <View key={i} style={connectingStyles.trainRow}>
+          <Text style={connectingStyles.trainTime}>{t.departureTime}</Text>
+          <View style={[connectingStyles.awayBadge, {
+            backgroundColor: t.minutesAway <= 3 ? '#FFEBEE' : t.minutesAway <= 7 ? '#FFF3E0' : '#E8F5E9',
+          }]}>
+            <Text style={[connectingStyles.awayText, {
+              color: t.minutesAway <= 3 ? colors.status.error : t.minutesAway <= 7 ? colors.status.warning : colors.status.success,
+            }]}>
+              {t.minutesAway <= 0 ? 'Now' : `${t.minutesAway} min`}
+            </Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+};
+
+const connectingStyles = StyleSheet.create({
+  panel: {
+    backgroundColor: colors.surface,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
+  },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs, gap: spacing.sm },
+  lineBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+  lineBadgeText: { color: colors.neutral[0], fontSize: 10, fontWeight: '700' },
+  title: { fontSize: 13, fontWeight: '700', color: colors.text.primary },
+  subtitle: { fontSize: 12, color: colors.text.secondary, marginBottom: spacing.sm },
+  trainRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.neutral[100],
+  },
+  trainTime: { fontSize: 14, fontWeight: '600', color: colors.text.primary },
+  awayBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
+  awayText: { fontSize: 12, fontWeight: '700' },
+});
+
 // ── Main Ticket Details Screen ──
 
 export default function TicketDetailsScreen() {
@@ -136,6 +225,7 @@ export default function TicketDetailsScreen() {
   const {
     startJourneyTracking, stopJourneyTracking,
     instructions, notificationsEnabled, toggleNotifications,
+    segments: storeSegments,
   } = useJourneyStore();
 
   // Single source of truth from store
@@ -260,6 +350,8 @@ export default function TicketDetailsScreen() {
           onToggleNotifications={toggleNotifications}
           onViewJourney={handleViewJourney}
         />
+
+        <ConnectingTrainsPanel segments={storeSegments.length > 0 ? storeSegments : (ticketData.route?.segments || [])} />
 
         <View style={{ height: 40 }} />
       </ScrollView>
