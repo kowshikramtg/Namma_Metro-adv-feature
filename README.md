@@ -33,6 +33,29 @@ Navigating urban transit can be stressful due to lack of real-time visibility, c
 - **Data Scraping Fallback:** Automatically scrapes official schedules, with static data fallbacks for guaranteed uptime.
 - **Planned:** AI-based crowd estimation analytics.
 
+
+## Product Images
+<span style="font-size: 4px;">Note: Not all depicted details are correct</span>
+<h3>Main Board</h3>
+<img width="140" height="310" alt="Main page" src="https://github.com/user-attachments/assets/bee3dd1c-b90f-448f-9852-0f7db09bc613" />
+<h3>Smart Journey Planner</h3>
+<img width="140" height="310" alt="WhatsApp Image 2026-09-30 at 18 24 46 (1)" src="https://github.com/user-attachments/assets/10788f93-dcc7-4069-9b12-dbd617b27dee" />
+<img width="140" height="310" alt="WhatsApp Image 2026-09-30 at 18 24 47" src="https://github.com/user-attachments/assets/6640cb7b-0b2b-4da7-9e8a-207083706d00" />
+<h3>Journey Details</h3>
+<img width="140" height="310" alt="WhatsApp Image 2026-09-30 at 18 24 47 (1)" src="https://github.com/user-attachments/assets/a955a27e-f4c7-4ef7-a7ca-d37d3a4e4adc" />
+<img width="140" height="310" alt="WhatsApp Image 2026-09-30 at 18 24 47 (2)" src="https://github.com/user-attachments/assets/f8d12c79-fa7e-4f87-a82e-abd82f0f95e4" />
+<img width="140" height="310" alt="WhatsApp Image 2026-09-30 at 18 24 49" src="https://github.com/user-attachments/assets/be093b8d-ef25-44b8-9069-fdea8603799d" />
+<img width="140" height="310" alt="WhatsApp Image 2026-09-30 at 18 53 45" src="https://github.com/user-attachments/assets/3ad31665-31a6-4fd8-b240-b45108bec898" />
+<img width="140" height="310" alt="WhatsApp Image 2026-09-30 at 18 53 44" src="https://github.com/user-attachments/assets/51cb99b6-4cae-4aa5-bdf6-73840dd02dc1" />
+<img width="140" height="310" alt="WhatsApp Image 2026-09-30 at 18 53 45 (1)" src="https://github.com/user-attachments/assets/ed51aed2-4eed-489a-a11a-ddce785e6d91" />
+
+
+
+
+
+
+
+
 ## Getting Started & Backend Usage
 If you are setting up the project for the first time, or need to connect your mobile app to the local backend, **please read the [Backend Setup & Connections Guide](BACKEND_USAGE.md)**. This guide covers `.env` setup, IP addresses, and manual tasks required by the developer.
 
@@ -70,15 +93,15 @@ graph TD
         end
     end
 
-    UI --> State
+    UI <--> State
     State <--> API
     WS_Client <--> WS_Server
     
-    API --> Route
-    API --> Schedule
+    API <--> Route
+    API <--> Schedule
     WS_Server --> Alert
     
-    Route --> Topology
+    Route <--> Topology
     Schedule --> Scraper
     Schedule --> Static
     Alert --> Schedule
@@ -142,11 +165,6 @@ cd mobile
 eas build -p all
 ```
 
-## Roadmap
-- [ ] Implement actual AI Crowd Estimation (currently placeholder).
-- [ ] Add support for the upcoming Yellow Line.
-- [ ] Multi-language support (Kannada/English UI).
-- [ ] Integration with a future official BMRC Live API instead of schedule scraping.
 
 ## Detailed Documentation
 Please refer to the sub-READMEs for specific, detailed information on each stack layer:
