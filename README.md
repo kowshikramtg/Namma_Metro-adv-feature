@@ -23,7 +23,7 @@ A complete, modern, full-stack application designed to provide commuters with an
 Navigating urban transit can be stressful due to lack of real-time visibility, confusing interchanges, and unpredictable crowd levels. The **Namma Metro Journey Companion** solves this by providing commuters with an intuitive mobile app backed by an intelligent backend that computes train positions dynamically based on official schedules. The system tracks the user's journey in real-time, offering proactive instructions (e.g., "Change to Green Line at Majestic") and digital QR ticketing.
 
 ## ✨ Actual Features
-- **Intelligent Route Planning:** Calculates the fastest path between stations using Dijkstra's algorithm, accounting for interchanges.
+- **Intelligent Route Planning:** Calculates the fastest path between stations, accounting for interchanges.
 - **Real Timetable Integration:** Planners and routing use exact BMRCL schedules (peak/off-peak frequencies) rather than estimating from the current clock.
 - **Multi-Option Smart Journey Planner:** Lists all upcoming trains that haven't departed yet, with exact arrival/departure times at every stop.
 - **Digital Ticketing:** QR-code based ticket generation.
@@ -110,7 +110,7 @@ graph TD
 
 ### Frontend ↔ Backend Data Flow
 1. **Initial Load:** The frontend uses React Query to fetch the station list and system health from the backend REST API.
-2. **Planning:** User inputs source and destination. The backend runs Dijkstra's algorithm and queries the `ScheduleEngine` to estimate travel time and next train arrivals, returning the route segments.
+2. **Planning:** User inputs source and destination. The backend queries the `ScheduleEngine` to estimate travel time and next train arrivals, returning the route segments.
 3. **Ticketing:** A ticket is purchased via REST API. The backend registers an `active_journey`.
 4. **Live Tracking:** The frontend opens a WebSocket connection to `/ws/journey/{journey_id}`.
 5. **Real-time Push:** The backend runs a background loop, consulting the `InstructionEngine` and `AlertEngine`, pushing JSON updates to the frontend every few seconds regarding current segment progress and interchange alerts.
