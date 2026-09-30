@@ -3,7 +3,7 @@
 Provides schedule-driven journey planning, real-time tracking, train position computation, and data scraping for the Namma Metro Journey Companion.
 
 ## 🎯 Purpose
-This backend serves as the core intelligence engine for the Namma Metro app. It calculates fastest routes using Dijkstra's algorithm, predicts train arrivals based on real or scraped schedule data, simulates active train positions, and broadcasts real-time journey instructions via WebSockets.
+This backend serves as the core intelligence engine for the Namma Metro app. It calculates fastest routes, predicts train arrivals based on real or scraped schedule data, simulates active train positions, and broadcasts real-time journey instructions via WebSockets.
 
 ## 🛠 Tech Stack
 - **Framework:** FastAPI (Python 3)
