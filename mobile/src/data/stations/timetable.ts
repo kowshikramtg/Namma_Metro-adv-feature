@@ -10,7 +10,7 @@
  *   First train: ~05:00 AM | Last train: ~22:50 PM
  */
 
-export type LineId = 'purple' | 'green';
+export type LineId = 'purple' | 'green' | 'yellow';
 export type Direction = 'forward' | 'reverse';
 
 /** A single scheduled service on one line, one direction. */
@@ -33,6 +33,10 @@ const GREEN_SEG_TIMES: number[] = [
   2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2,
 ];
 
+const YELLOW_SEG_TIMES: number[] = [
+  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+];
+
 /** Cumulative travel time from terminal (index 0) to station[idx] on Purple Line. */
 export function cumulativePurple(idx: number): number {
   let acc = 0;
@@ -47,6 +51,15 @@ export function cumulativeGreen(idx: number): number {
   let acc = 0;
   for (let i = 0; i < idx && i < GREEN_SEG_TIMES.length; i++) {
     acc += GREEN_SEG_TIMES[i];
+  }
+  return acc;
+}
+
+/** Cumulative travel time from terminal (index 0) to station[idx] on Yellow Line. */
+export function cumulativeYellow(idx: number): number {
+  let acc = 0;
+  for (let i = 0; i < idx && i < YELLOW_SEG_TIMES.length; i++) {
+    acc += YELLOW_SEG_TIMES[i];
   }
   return acc;
 }
@@ -141,6 +154,71 @@ const GREEN_SILK_INSTITUTE_SUN: TimeBlock[] = [
   { from: "22:44", to: "23:05", freq: 12 }
 ];
 
+const YELLOW_RV_ROAD_MON: TimeBlock[] = [
+  { from: "05:05", to: "05:35", freq: 30 }, { from: "05:35", to: "06:00", freq: 25 },
+  { from: "06:00", to: "06:40", freq: 20 }, { from: "06:40", to: "06:56", freq: 16 },
+  { from: "06:56", to: "07:07", freq: 11 }, { from: "07:07", to: "08:27", freq: 10 },
+  { from: "08:27", to: "09:15", freq: 8 },  { from: "09:15", to: "09:29", freq: 7 },
+  { from: "09:29", to: "10:47", freq: 6 },  { from: "10:47", to: "10:55", freq: 8 },
+  { from: "10:55", to: "11:04", freq: 9 },  { from: "11:04", to: "16:34", freq: 10 },
+  { from: "16:34", to: "16:41", freq: 7 },  { from: "16:41", to: "20:11", freq: 6 },
+  { from: "20:11", to: "21:07", freq: 8 },  { from: "21:07", to: "21:57", freq: 10 },
+  { from: "21:57", to: "22:10", freq: 13 }, { from: "22:10", to: "22:40", freq: 15 },
+  { from: "22:40", to: "23:55", freq: 25 }
+];
+const YELLOW_RV_ROAD_TUE_FRI: TimeBlock[] = [
+  { from: "06:00", to: "06:40", freq: 20 }, { from: "06:40", to: "06:56", freq: 16 },
+  { from: "06:56", to: "07:07", freq: 11 }, { from: "07:07", to: "08:27", freq: 10 },
+  { from: "08:27", to: "09:15", freq: 8 },  { from: "09:15", to: "09:29", freq: 7 },
+  { from: "09:29", to: "10:47", freq: 6 },  { from: "10:47", to: "10:55", freq: 8 },
+  { from: "10:55", to: "11:04", freq: 9 },  { from: "11:04", to: "16:34", freq: 10 },
+  { from: "16:34", to: "16:41", freq: 7 },  { from: "16:41", to: "20:11", freq: 6 },
+  { from: "20:11", to: "21:07", freq: 8 },  { from: "21:07", to: "21:57", freq: 10 },
+  { from: "21:57", to: "22:10", freq: 13 }, { from: "22:10", to: "22:40", freq: 15 },
+  { from: "22:40", to: "23:55", freq: 25 }
+];
+const YELLOW_RV_ROAD_SAT: TimeBlock[] = [
+  { from: "06:00", to: "06:25", freq: 20 }, { from: "06:25", to: "07:05", freq: 20 },
+  { from: "07:05", to: "07:20", freq: 15 }, { from: "07:20", to: "07:31", freq: 11 },
+  { from: "07:31", to: "20:31", freq: 10 }, { from: "20:31", to: "22:07", freq: 12 },
+  { from: "22:07", to: "22:25", freq: 18 }, { from: "22:25", to: "23:05", freq: 20 },
+  { from: "23:05", to: "23:55", freq: 25 }
+];
+const YELLOW_RV_ROAD_SUN: TimeBlock[] = [
+  { from: "07:00", to: "08:48", freq: 18 }, { from: "08:48", to: "09:58", freq: 14 },
+  { from: "09:58", to: "10:46", freq: 12 }, { from: "10:46", to: "20:56", freq: 10 },
+  { from: "20:56", to: "22:20", freq: 12 }, { from: "22:20", to: "22:50", freq: 15 },
+  { from: "22:50", to: "23:30", freq: 20 }, { from: "23:30", to: "23:55", freq: 25 }
+];
+
+const YELLOW_BOMMASANDRA_MON: TimeBlock[] = [
+  { from: "05:05", to: "05:35", freq: 30 }, { from: "05:35", to: "06:00", freq: 20 },
+  { from: "06:00", to: "06:20", freq: 20 }, { from: "06:20", to: "07:50", freq: 10 },
+  { from: "07:50", to: "08:38", freq: 8 },  { from: "08:38", to: "08:52", freq: 7 },
+  { from: "08:52", to: "10:10", freq: 6 },  { from: "10:10", to: "10:18", freq: 8 },
+  { from: "10:18", to: "15:58", freq: 10 }, { from: "15:58", to: "19:34", freq: 6 },
+  { from: "19:34", to: "20:30", freq: 8 },  { from: "20:30", to: "21:30", freq: 10 },
+  { from: "21:30", to: "22:42", freq: 12 }
+];
+const YELLOW_BOMMASANDRA_TUE_FRI: TimeBlock[] = [
+  { from: "06:00", to: "06:20", freq: 20 }, { from: "06:20", to: "07:50", freq: 10 },
+  { from: "07:50", to: "08:38", freq: 8 },  { from: "08:38", to: "08:52", freq: 7 },
+  { from: "08:52", to: "10:10", freq: 6 },  { from: "10:10", to: "10:18", freq: 8 },
+  { from: "10:18", to: "15:58", freq: 10 }, { from: "15:58", to: "19:34", freq: 6 },
+  { from: "19:34", to: "20:30", freq: 8 },  { from: "20:30", to: "21:30", freq: 10 },
+  { from: "21:30", to: "22:42", freq: 12 }
+];
+const YELLOW_BOMMASANDRA_SAT: TimeBlock[] = [
+  { from: "06:00", to: "06:40", freq: 20 }, { from: "06:40", to: "06:55", freq: 15 },
+  { from: "06:55", to: "19:55", freq: 10 }, { from: "19:55", to: "22:31", freq: 12 },
+  { from: "22:31", to: "22:42", freq: 11 }
+];
+const YELLOW_BOMMASANDRA_SUN: TimeBlock[] = [
+  { from: "07:00", to: "08:12", freq: 18 }, { from: "08:12", to: "09:08", freq: 14 },
+  { from: "09:08", to: "10:20", freq: 12 }, { from: "10:20", to: "20:20", freq: 10 },
+  { from: "20:20", to: "22:32", freq: 12 }, { from: "22:32", to: "22:42", freq: 10 }
+];
+
 function timeToMins(t: string): number {
   const [h, m] = t.split(':').map(Number);
   return h * 60 + m;
@@ -161,24 +239,29 @@ function generateDepartures(blocks: TimeBlock[]): number[] {
 
 function getTimetableForToday() {
   const day = new Date().getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
-  let pC, pW, gM, gS;
+  let pC, pW, gM, gS, yR, yB;
   if (day === 0) {
     pC = PURPLE_CHALLAGHATTA_SUN; pW = PURPLE_WHITEFIELD_SUN;
     gM = GREEN_MADAVARA_SUN; gS = GREEN_SILK_INSTITUTE_SUN;
+    yR = YELLOW_RV_ROAD_SUN; yB = YELLOW_BOMMASANDRA_SUN;
   } else if (day === 1) {
     pC = PURPLE_CHALLAGHATTA_MON; pW = PURPLE_WHITEFIELD_MON;
     gM = GREEN_MADAVARA_MON; gS = GREEN_SILK_INSTITUTE_MON;
+    yR = YELLOW_RV_ROAD_MON; yB = YELLOW_BOMMASANDRA_MON;
   } else if (day === 6) {
     pC = PURPLE_CHALLAGHATTA_SAT; pW = PURPLE_WHITEFIELD_SAT;
     gM = GREEN_MADAVARA_SAT; gS = GREEN_SILK_INSTITUTE_SAT;
+    yR = YELLOW_RV_ROAD_SAT; yB = YELLOW_BOMMASANDRA_SAT;
   } else {
     pC = PURPLE_CHALLAGHATTA_TUE_FRI; pW = PURPLE_WHITEFIELD_TUE_FRI;
     gM = GREEN_MADAVARA_TUE_FRI; gS = GREEN_SILK_INSTITUTE_TUE_FRI;
+    yR = YELLOW_RV_ROAD_TUE_FRI; yB = YELLOW_BOMMASANDRA_TUE_FRI;
   }
 
   return {
     purple: { forward: generateDepartures(pC), reverse: generateDepartures(pW) },
-    green:  { forward: generateDepartures(gM),  reverse: generateDepartures(gS)  },
+    green:  { forward: generateDepartures(gM), reverse: generateDepartures(gS) },
+    yellow: { forward: generateDepartures(yR), reverse: generateDepartures(yB) }
   };
 }
 

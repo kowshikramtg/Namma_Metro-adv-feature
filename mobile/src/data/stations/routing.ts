@@ -6,7 +6,7 @@
  * wall-clock "now". Departed trains are automatically filtered out.
  */
 
-import { ALL_STATIONS, PURPLE_LINE, GREEN_LINE, getStationName } from './stationData';
+import { ALL_STATIONS, PURPLE_LINE, GREEN_LINE, YELLOW_LINE, getStationName, getStationById } from './stationData';
 import type { RouteSegment } from '../../shared/types';
 import {
   TIMETABLE,
@@ -57,8 +57,11 @@ const GREEN_LINE_TIMES: number[] = [
   2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2,
 ];
 
-const INTERCHANGE_STATION = 'nadaprabhu_kempegowda_majestic';
-const INTERCHANGE_WALK_MINUTES = 3; // realistic walk between platforms at Majestic
+const YELLOW_LINE_TIMES: number[] = [
+  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+];
+
+const INTERCHANGE_WALK_MINUTES = 3; // realistic walk between platforms
 
 // ── Edge weight map ──
 
@@ -78,6 +81,12 @@ PURPLE_LINE.forEach((s, i) => {
 GREEN_LINE.forEach((s, i) => {
   if (i < GREEN_LINE.length - 1) {
     addEdgePair(s.id, GREEN_LINE[i + 1].id, GREEN_LINE_TIMES[i] ?? 2);
+  }
+});
+
+YELLOW_LINE.forEach((s, i) => {
+  if (i < YELLOW_LINE.length - 1) {
+    addEdgePair(s.id, YELLOW_LINE[i + 1].id, YELLOW_LINE_TIMES[i] ?? 2);
   }
 });
 
@@ -103,6 +112,7 @@ function addEdges(lineStations: typeof PURPLE_LINE, lineName: string): void {
 
 addEdges(PURPLE_LINE, 'purple');
 addEdges(GREEN_LINE, 'green');
+addEdges(YELLOW_LINE, 'yellow');
 
 // ── Real fare (BMRCL slab system) ──
 
@@ -128,9 +138,15 @@ function getGreenIdx(id: string): number {
   return GREEN_LINE.findIndex(s => s.id === id);
 }
 
+function getYellowIdx(id: string): number {
+  return YELLOW_LINE.findIndex(s => s.id === id);
+}
+
 function getDirection(line: LineId, fromId: string, toId: string): Direction {
   if (line === 'purple') {
     return getPurpleIdx(fromId) <= getPurpleIdx(toId) ? 'forward' : 'reverse';
+  } else if (line === 'yellow') {
+    return getYellowIdx(fromId) <= getYellowIdx(toId) ? 'forward' : 'reverse';
   }
   return getGreenIdx(fromId) <= getGreenIdx(toId) ? 'forward' : 'reverse';
 }
@@ -248,7 +264,7 @@ function dijkstraPath(sourceId: string, destId: string): {
       let alt = dist[u] + edge.time;
       const prevLine = lineAtNode[u] || edge.line;
       if (prevLine !== edge.line) {
-        if (u === INTERCHANGE_STATION) { alt += INTERCHANGE_WALK_MINUTES; }
+        if (getStationById(u)?.is_interchange) { alt += INTERCHANGE_WALK_MINUTES; }
         else { continue; }
       }
       if (alt < dist[edge.neighbor]) {
@@ -274,7 +290,7 @@ function pathToSegments(path: string[]): RouteSegment[] {
   let segStart = path[0];
   let segLine = graph[path[0]]?.find(e => e.neighbor === path[1])?.line ?? 'purple';
 
-  if (segStart === INTERCHANGE_STATION && path.length > 1) {
+  if (getStationById(segStart)?.is_interchange && path.length > 1) {
     segLine = graph[segStart].find(e => e.neighbor === path[1])?.line ?? 'purple';
   }
 
@@ -286,7 +302,7 @@ function pathToSegments(path: string[]): RouteSegment[] {
     const v = path[i + 1];
     const connectingLine = graph[u].find(e => e.neighbor === v)?.line ?? segLine;
 
-    if (u === INTERCHANGE_STATION && connectingLine !== segLine && i > 0) {
+    if (getStationById(u)?.is_interchange && connectingLine !== segLine && i > 0) {
       segments.push({
         from_station_id: segStart,
         from_station:    getStationName(segStart),

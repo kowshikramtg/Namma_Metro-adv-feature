@@ -16,6 +16,7 @@ import Svg, { Circle, Line, Rect, Text as SvgText, G } from 'react-native-svg';
 import {
   PURPLE_LINE_NODES,
   GREEN_LINE_NODES,
+  YELLOW_LINE_NODES,
   VIEWBOX,
   LINE_COLORS,
   type StationNode,
@@ -167,9 +168,9 @@ export const MetroNetworkSVG: React.FC<MetroNetworkSVGProps> = ({
     );
   };
 
-  // Deduplicate Majestic (rendered once as interchange)
-  const greenWithoutMajestic = GREEN_LINE_NODES.filter(
-    (n) => n.id !== 'nadaprabhu_kempegowda_majestic',
+  // Deduplicate Majestic and RV Road (rendered as interchanges)
+  const greenWithoutInterchanges = GREEN_LINE_NODES.filter(
+    (n) => n.id !== 'nadaprabhu_kempegowda_majestic' && n.id !== 'rashtreeya_vidyalaya_road',
   );
 
   return (
@@ -183,6 +184,7 @@ export const MetroNetworkSVG: React.FC<MetroNetworkSVGProps> = ({
         {/* Line paths */}
         {renderLine(PURPLE_LINE_NODES, LINE_COLORS.purple, 'purple')}
         {renderLine(GREEN_LINE_NODES, LINE_COLORS.green, 'green')}
+        {renderLine(YELLOW_LINE_NODES, LINE_COLORS.yellow, 'yellow')}
 
         {/* Station dots — purple (non-interchange) */}
         {PURPLE_LINE_NODES.filter((n) => n.line !== 'both').map((n) =>
@@ -190,12 +192,20 @@ export const MetroNetworkSVG: React.FC<MetroNetworkSVGProps> = ({
         )}
 
         {/* Station dots — green (non-interchange) */}
-        {greenWithoutMajestic.map((n) =>
+        {greenWithoutInterchanges.map((n) =>
           renderStation(n, LINE_COLORS.green),
         )}
 
+        {/* Station dots — yellow (non-interchange) */}
+        {YELLOW_LINE_NODES.filter((n) => n.line !== 'both').map((n) =>
+          renderStation(n, LINE_COLORS.yellow),
+        )}
+
         {/* Interchange — rendered last (on top) */}
-        {PURPLE_LINE_NODES.filter((n) => n.line === 'both').map((n) =>
+        {[
+          ...PURPLE_LINE_NODES.filter((n) => n.line === 'both'),
+          ...YELLOW_LINE_NODES.filter((n) => n.line === 'both')
+        ].map((n) =>
           renderStation(n, '#333'),
         )}
 
@@ -213,13 +223,15 @@ export const MetroNetworkSVG: React.FC<MetroNetworkSVGProps> = ({
 
         {/* Legend */}
         <G>
-          <Rect x={20} y={20} width={140} height={60} rx={6} fill="white" opacity={0.9} stroke="#ddd" />
+          <Rect x={20} y={20} width={140} height={90} rx={6} fill="white" opacity={0.9} stroke="#ddd" />
           <Line x1={30} y1={38} x2={60} y2={38} stroke={LINE_COLORS.purple} strokeWidth={3} />
           <SvgText x={66} y={40} fontSize={8} fill="#333">Purple Line</SvgText>
           <Line x1={30} y1={56} x2={60} y2={56} stroke={LINE_COLORS.green} strokeWidth={3} />
           <SvgText x={66} y={58} fontSize={8} fill="#333">Green Line</SvgText>
-          <Circle cx={45} cy={72} r={5} fill="white" stroke="#333" strokeWidth={2} />
-          <SvgText x={56} y={74} fontSize={7} fill="#333">Interchange</SvgText>
+          <Line x1={30} y1={74} x2={60} y2={74} stroke={LINE_COLORS.yellow} strokeWidth={3} />
+          <SvgText x={66} y={76} fontSize={8} fill="#333">Yellow Line</SvgText>
+          <Circle cx={45} cy={90} r={5} fill="white" stroke="#333" strokeWidth={2} />
+          <SvgText x={56} y={92} fontSize={7} fill="#333">Interchange</SvgText>
         </G>
       </Svg>
     </View>

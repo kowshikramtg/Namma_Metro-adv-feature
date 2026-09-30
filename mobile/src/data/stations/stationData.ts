@@ -76,6 +76,25 @@ export const GREEN_LINE: Station[] = [
   { id: 'silk_institute', name: 'Silk Institute', line: 'green', order: 31, is_interchange: false },
 ];
 
+export const YELLOW_LINE: Station[] = [
+  { id: 'rashtreeya_vidyalaya_road', name: 'RV Road', line: 'yellow', order: 0, is_interchange: false },
+  { id: 'ragigudda', name: 'Ragigudda', line: 'yellow', order: 1, is_interchange: false },
+  { id: 'jayadeva_hospital', name: 'Jayadeva Hospital', line: 'yellow', order: 2, is_interchange: false },
+  { id: 'btm_layout', name: 'BTM Layout', line: 'yellow', order: 3, is_interchange: false },
+  { id: 'central_silk_board', name: 'Central Silk Board', line: 'yellow', order: 4, is_interchange: false },
+  { id: 'bommanahalli', name: 'Bommanahalli', line: 'yellow', order: 5, is_interchange: false },
+  { id: 'hongasandra', name: 'Hongasandra', line: 'yellow', order: 6, is_interchange: false },
+  { id: 'kudlu_gate', name: 'Kudlu Gate', line: 'yellow', order: 7, is_interchange: false },
+  { id: 'singasandra', name: 'Singasandra', line: 'yellow', order: 8, is_interchange: false },
+  { id: 'hosa_road', name: 'Hosa Road', line: 'yellow', order: 9, is_interchange: false },
+  { id: 'beratena_agrahara', name: 'Beratena Agrahara', line: 'yellow', order: 10, is_interchange: false },
+  { id: 'electronic_city', name: 'Electronic City', line: 'yellow', order: 11, is_interchange: false },
+  { id: 'infosys_foundation_konappana_agrahara', name: 'Infosys Foundation Konappana Agrahara', line: 'yellow', order: 12, is_interchange: false },
+  { id: 'huskur_road', name: 'Huskur Road', line: 'yellow', order: 13, is_interchange: false },
+  { id: 'biocon_hebbagodi', name: 'Biocon Hebbagodi', line: 'yellow', order: 14, is_interchange: false },
+  { id: 'delta_electronics_bommasandra', name: 'Delta Electronics Bommasandra', line: 'yellow', order: 15, is_interchange: false },
+];
+
 export const ALL_STATIONS: Station[] = (() => {
   const map = new Map<string, Station>();
   PURPLE_LINE.forEach((s) => map.set(s.id, { ...s }));
@@ -83,6 +102,15 @@ export const ALL_STATIONS: Station[] = (() => {
     if (map.has(s.id)) {
       const existing = map.get(s.id)!;
       existing.line = 'both';
+      existing.is_interchange = true;
+    } else {
+      map.set(s.id, { ...s });
+    }
+  });
+  YELLOW_LINE.forEach((s) => {
+    if (map.has(s.id)) {
+      const existing = map.get(s.id)!;
+      existing.line = 'multiple';
       existing.is_interchange = true;
     } else {
       map.set(s.id, { ...s });

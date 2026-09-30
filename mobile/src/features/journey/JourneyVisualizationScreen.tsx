@@ -67,11 +67,11 @@ export default function JourneyVisualizationScreen() {
   const statusText = (() => {
     if (!activeStatus) return 'Loading...';
     switch (activeStatus.status) {
-      case 'boarding': return '🚇 Boarding';
-      case 'in_progress': return `🚂 ${activeStatus.current_station}`;
-      case 'approaching_interchange': return '🔄 Interchange ahead';
-      case 'approaching_destination': return '📍 Arriving soon';
-      case 'completed': return '✅ Arrived';
+      case 'boarding': return 'Boarding';
+      case 'in_progress': return `${activeStatus.current_station}`;
+      case 'approaching_interchange': return 'Transfer';
+      case 'approaching_destination': return 'Arriving soon';
+      case 'completed': return 'Arrived';
       default: return 'Tracking...';
     }
   })();
@@ -83,10 +83,14 @@ export default function JourneyVisualizationScreen() {
       <ScrollView
         style={styles.mapScroll}
         contentContainerStyle={styles.mapContent}
-        maximumZoomScale={3}
-        minimumZoomScale={0.8}
-        bouncesZoom
+        maximumZoomScale={4}
+        minimumZoomScale={0.5}
+        bouncesZoom={true}
         showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        scrollEnabled={true}
+        pinchGestureEnabled={true}
+        centerContent={true}
       >
         <MetroNetworkSVG
           width={SCREEN_W}

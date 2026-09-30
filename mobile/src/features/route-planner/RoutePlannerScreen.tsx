@@ -133,7 +133,7 @@ export default function RoutePlannerScreen() {
         }
       >
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>🧭 Find Your Train</Text>
+          <Text style={styles.cardTitle}>Find Your Train</Text>
           <Text style={styles.cardSubtitle}>Real timetable · Auto-refreshes every 30s</Text>
 
           <View style={{ position: 'relative' }}>
@@ -163,7 +163,7 @@ export default function RoutePlannerScreen() {
             {loading ? (
               <ActivityIndicator color={colors.neutral[0]} />
             ) : (
-              <Text style={styles.btnText}>Show All Trains →</Text>
+              <Text style={styles.btnText}>SEARCH TRAINS</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -177,7 +177,7 @@ export default function RoutePlannerScreen() {
         {lastRefresh && journeys.length > 0 && (
           <View style={styles.refreshInfo}>
             <Text style={styles.refreshText}>
-              🕒 Updated {lastRefresh.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} · Pull to refresh
+              Updated {lastRefresh.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} · Pull to refresh
             </Text>
           </View>
         )}
@@ -222,7 +222,7 @@ export default function RoutePlannerScreen() {
                             <View style={styles.timelinePoint}>
                               <Text style={styles.timelineTime}>{firstSeg.arrival_time}</Text>
                               <Text style={[styles.timelineStation, { color: colors.purple[500] }]} numberOfLines={1}>
-                                Majestic 🔄
+                                Majestic (Transfer)
                               </Text>
                             </View>
                             <Text style={styles.timelineArrow}>→</Text>
@@ -247,11 +247,11 @@ export default function RoutePlannerScreen() {
                       </View>
 
                       <View style={styles.statsRow}>
-                        <Text style={styles.statChip}>⏱ {journey.total_time_minutes} min</Text>
-                        <Text style={styles.statChip}>🚉 {journey.stations_count} stations</Text>
+                        <Text style={styles.statChip}>{journey.total_time_minutes} min</Text>
+                        <Text style={styles.statChip}>{journey.stations_count} stations</Text>
                         <Text style={styles.statChip}>₹{journey.fare_estimate}</Text>
                         {hasInterchange && (
-                          <Text style={[styles.statChip, { color: colors.status.warning }]}>🔄 1 change</Text>
+                          <Text style={[styles.statChip, { color: colors.status.warning }]}>Transfer: 1 change</Text>
                         )}
                       </View>
                     </View>
@@ -264,7 +264,7 @@ export default function RoutePlannerScreen() {
                   {isExpanded && (
                     <View style={styles.expandedDetail}>
                       {journey.segments.map((seg, si) => {
-                        const lc = seg.line === 'green' ? colors.green[500] : colors.purple[600];
+                        const lc = seg.line === 'green' ? colors.green[500] : seg.line === 'yellow' ? colors.status.warning : colors.purple[600];
                         return (
                           <View key={si}>
                             <View style={[styles.segDetail, { borderLeftColor: lc }]}>
@@ -278,7 +278,7 @@ export default function RoutePlannerScreen() {
                               </View>
                               {seg.stations && seg.stations.length > 2 && (
                                 <Text style={styles.segIntermediate}>
-                                  ⬇ {seg.stations.length - 2} intermediate stations · {seg.travel_time_minutes} min
+                                  ↓ {seg.stations.length - 2} intermediate stations · {seg.travel_time_minutes} min
                                 </Text>
                               )}
                               <View style={styles.segRow}>
@@ -291,10 +291,10 @@ export default function RoutePlannerScreen() {
                             {si < journey.segments.length - 1 && (
                               <View style={styles.interchangeNote}>
                                 <Text style={styles.interchangeNoteText}>
-                                  🔄 Change trains at Majestic · Walk ~3 min to {journey.segments[si + 1].line} Line platform
+                                  Transfer: Change trains at Majestic · Walk ~3 min to {journey.segments[si + 1].line} Line platform
                                 </Text>
                                 <Text style={styles.interchangeNoteText}>
-                                  🕒 Next {journey.segments[si + 1].line} Line train: {journey.segments[si + 1].departure_time}
+                                  Next {journey.segments[si + 1].line} Line train: {journey.segments[si + 1].departure_time}
                                 </Text>
                               </View>
                             )}
@@ -312,7 +312,6 @@ export default function RoutePlannerScreen() {
 
         {journeys.length === 0 && !loading && !error && source && dest && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🌙</Text>
             <Text style={styles.emptyTitle}>No trains available</Text>
             <Text style={styles.emptyText}>Metro services have ended. First trains at 05:00 AM.</Text>
           </View>

@@ -39,10 +39,14 @@ export default function MetroMapScreen() {
       <ScrollView
         style={styles.mapScroll}
         contentContainerStyle={styles.mapContent}
-        maximumZoomScale={3}
-        minimumZoomScale={0.8}
-        bouncesZoom
+        maximumZoomScale={4}
+        minimumZoomScale={0.5}
+        bouncesZoom={true}
         showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        scrollEnabled={true}
+        pinchGestureEnabled={true}
+        centerContent={true}
       >
         <MetroNetworkSVG
           width={SCREEN_W}

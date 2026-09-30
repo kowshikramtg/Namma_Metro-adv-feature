@@ -28,13 +28,13 @@ export default function HomeScreen() {
   const { activeTicket, activeJourneyId } = useJourneyStore();
 
   const travelItems = [
-    { icon: '🎫', label: 'Top Up', route: null },
-    { icon: '🎟️', label: 'QR Tickets', route: 'QRTickets' as const },
-    { icon: '📱', label: 'QR Pass', route: null },
-    { icon: '🕐', label: 'Time Table', route: null },
-    { icon: '🗺️', label: 'Map', route: 'MetroMap' as const },
-    { icon: '💰', label: 'Fare Info', route: null },
-    { icon: '🎧', label: 'Support', route: null },
+    { icon: '₹', label: 'Top Up', route: null },
+    { icon: 'QR', label: 'QR Tickets', route: 'QRTickets' as const },
+    { icon: 'P', label: 'QR Pass', route: null },
+    { icon: 'T', label: 'Timetable', route: null },
+    { icon: 'M', label: 'Map', route: 'MetroMap' as const },
+    { icon: '₹', label: 'Fare Info', route: null },
+    { icon: 'H', label: 'Help', route: null },
   ];
 
   return (
@@ -52,8 +52,8 @@ export default function HomeScreen() {
                 <Text style={styles.userName}>Kowshik T G</Text>
               </View>
               <View style={styles.headerIcons}>
-                <Text style={styles.headerIcon}>🌐</Text>
-                <Text style={[styles.headerIcon, { fontFamily: 'serif' }]}>ಕ</Text>
+                <Text style={styles.headerIcon}>EN</Text>
+                <Text style={styles.headerIcon}>ಕ</Text>
               </View>
             </View>
           </SafeAreaView>
@@ -70,7 +70,7 @@ export default function HomeScreen() {
             activeOpacity={0.9}
           >
             <View style={styles.activeJourneyIconWrap}>
-              <Text style={styles.activeJourneyIcon}>🚆</Text>
+              <Text style={styles.activeJourneyIcon}>M</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.activeJourneyTitle}>Active Journey</Text>
@@ -107,7 +107,7 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Recent Travel</Text>
           {recentTrips.map((trip, i) => (
             <View key={i} style={styles.recentCard}>
-              <Text style={styles.recentEmoji}>🚇</Text>
+              <View style={styles.recentIconWrap}><Text style={styles.recentIconText}>M</Text></View>
               <View style={styles.recentInfo}>
                 <View style={styles.recentRoute}>
                   <View style={styles.dot} />
@@ -135,11 +135,11 @@ export default function HomeScreen() {
           onPress={() => navigation.navigate('RoutePlanner')}
         >
           <View style={styles.plannerIconContainer}>
-            <Text style={styles.plannerIcon}>🧭</Text>
+            <Text style={styles.plannerIcon}>→</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.plannerTitle}>Smart Journey Planner</Text>
-            <Text style={styles.plannerSub}>Plan routes with schedule-computed timings</Text>
+            <Text style={styles.plannerSub}>Plan your metro journey with live schedules</Text>
           </View>
           <Text style={styles.plannerArrow}>›</Text>
         </TouchableOpacity>
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', ...shadows.sm,
     borderWidth: 1, borderColor: `${colors.purple[600]}20`,
   },
-  iconText: { fontSize: 24 },
+  iconText: { fontSize: 16, fontWeight: '700', color: colors.purple[600] },
   itemLabel: {
     fontSize: 11, color: colors.text.primary, marginTop: 8,
     textAlign: 'center', fontWeight: '500',
@@ -218,7 +218,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', ...shadows.sm,
     borderWidth: 1, borderColor: colors.neutral[150],
   },
-  recentEmoji: { fontSize: 24, marginRight: spacing.lg },
+  recentIconWrap: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.purple[100], alignItems: 'center', justifyContent: 'center', marginRight: spacing.lg },
+  recentIconText: { fontSize: 16, fontWeight: '700', color: colors.purple[600] },
   recentInfo: { flex: 1 },
   recentRoute: { flexDirection: 'row', alignItems: 'center' },
   dot: {

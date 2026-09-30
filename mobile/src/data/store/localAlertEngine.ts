@@ -56,14 +56,18 @@ function makeAlert(
 function directionFromSegment(seg: RouteSegment): Direction {
   // We lazy-require stationData to avoid circular deps at module init time
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { PURPLE_LINE, GREEN_LINE } = require('../stations/stationData');
+  const { PURPLE_LINE, GREEN_LINE, YELLOW_LINE } = require('../stations/stationData');
   if (seg.line === 'purple') {
     const fi = PURPLE_LINE.findIndex((s: { id: string }) => s.id === seg.from_station_id);
     const ti = PURPLE_LINE.findIndex((s: { id: string }) => s.id === seg.to_station_id);
     return fi <= ti ? 'forward' : 'reverse';
-  } else {
+  } else if (seg.line === 'green') {
     const fi = GREEN_LINE.findIndex((s: { id: string }) => s.id === seg.from_station_id);
     const ti = GREEN_LINE.findIndex((s: { id: string }) => s.id === seg.to_station_id);
+    return fi <= ti ? 'forward' : 'reverse';
+  } else {
+    const fi = YELLOW_LINE.findIndex((s: { id: string }) => s.id === seg.from_station_id);
+    const ti = YELLOW_LINE.findIndex((s: { id: string }) => s.id === seg.to_station_id);
     return fi <= ti ? 'forward' : 'reverse';
   }
 }
@@ -87,7 +91,7 @@ export function computeJourneyAlerts(segments: RouteSegment[]): JourneyAlert[] {
     const arrMin = parseTime(seg.arrival_time);
     if (depMin === null || arrMin === null) continue;
 
-    const lineColor = seg.line === 'green' ? '#4CAF50' : '#7B2D8E';
+    const lineColor = seg.line === 'green' ? '#4CAF50' : seg.line === 'yellow' ? '#FFC107' : '#7B2D8E';
     const lineName  = seg.line.charAt(0).toUpperCase() + seg.line.slice(1);
 
     // ── 1. BOARDING REMINDER (3 min before departure) ──

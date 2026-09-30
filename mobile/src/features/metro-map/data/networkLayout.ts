@@ -14,7 +14,7 @@ export interface StationNode {
   name: string;
   x: number;
   y: number;
-  line: 'purple' | 'green' | 'both';
+  line: 'purple' | 'green' | 'yellow' | 'both';
   labelAlign: 'left' | 'right' | 'top' | 'bottom';
 }
 
@@ -99,11 +99,33 @@ export const GREEN_LINE_NODES: StationNode[] = [
   { id: 'silk_institute', name: 'Silk Institute', x: 510, y: 1230, line: 'green', labelAlign: 'left' },
 ];
 
+export const YELLOW_LINE_NODES: StationNode[] = [
+  { id: 'rashtreeya_vidyalaya_road', name: 'RV Road', x: 505, y: 950, line: 'both', labelAlign: 'left' },
+  { id: 'ragigudda', name: 'Ragigudda', x: 540, y: 980, line: 'yellow', labelAlign: 'right' },
+  { id: 'jayadeva_hospital', name: 'Jayadeva Hospital', x: 575, y: 1010, line: 'yellow', labelAlign: 'right' },
+  { id: 'btm_layout', name: 'BTM Layout', x: 610, y: 1040, line: 'yellow', labelAlign: 'right' },
+  { id: 'central_silk_board', name: 'Central Silk Board', x: 645, y: 1070, line: 'yellow', labelAlign: 'right' },
+  { id: 'bommanahalli', name: 'Bommanahalli', x: 680, y: 1100, line: 'yellow', labelAlign: 'right' },
+  { id: 'hongasandra', name: 'Hongasandra', x: 715, y: 1130, line: 'yellow', labelAlign: 'right' },
+  { id: 'kudlu_gate', name: 'Kudlu Gate', x: 750, y: 1160, line: 'yellow', labelAlign: 'right' },
+  { id: 'singasandra', name: 'Singasandra', x: 785, y: 1190, line: 'yellow', labelAlign: 'right' },
+  { id: 'hosa_road', name: 'Hosa Road', x: 820, y: 1220, line: 'yellow', labelAlign: 'right' },
+  { id: 'beratena_agrahara', name: 'Beratena Agrahara', x: 855, y: 1250, line: 'yellow', labelAlign: 'right' },
+  { id: 'electronic_city', name: 'Electronic City', x: 890, y: 1280, line: 'yellow', labelAlign: 'right' },
+  { id: 'infosys_foundation_konappana_agrahara', name: 'Konappana Agrahara', x: 920, y: 1310, line: 'yellow', labelAlign: 'right' },
+  { id: 'huskur_road', name: 'Huskur Road', x: 940, y: 1340, line: 'yellow', labelAlign: 'right' },
+  { id: 'biocon_hebbagodi', name: 'Hebbagodi', x: 955, y: 1370, line: 'yellow', labelAlign: 'right' },
+  { id: 'delta_electronics_bommasandra', name: 'Bommasandra', x: 970, y: 1400, line: 'yellow', labelAlign: 'right' },
+];
+
 /** All nodes merged, Majestic deduplicated */
 export const ALL_NODES: StationNode[] = (() => {
   const map = new Map<string, StationNode>();
   PURPLE_LINE_NODES.forEach((n) => map.set(n.id, n));
   GREEN_LINE_NODES.forEach((n) => {
+    if (!map.has(n.id)) map.set(n.id, n);
+  });
+  YELLOW_LINE_NODES.forEach((n) => {
     if (!map.has(n.id)) map.set(n.id, n);
   });
   return Array.from(map.values());
@@ -112,9 +134,10 @@ export const ALL_NODES: StationNode[] = (() => {
 export const getNodeById = (id: string): StationNode | undefined =>
   ALL_NODES.find((n) => n.id === id);
 
-export const VIEWBOX = { width: 1020, height: 1300 };
+export const VIEWBOX = { width: 1020, height: 1460 };
 
 export const LINE_COLORS = {
   purple: '#7B2D8E',
   green: '#4CAF50',
+  yellow: '#FFC107',
 } as const;

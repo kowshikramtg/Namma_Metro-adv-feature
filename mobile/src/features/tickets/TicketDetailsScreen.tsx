@@ -64,7 +64,7 @@ const JourneyCompanionCard: React.FC<CompanionProps> = ({
           onPress={onToggleNotifications}
         >
           <Text style={[styles.statusText, { color: notificationsEnabled ? colors.purple[600] : colors.text.secondary }]}>
-            {notificationsEnabled ? '🔔 ON' : '🔕 OFF'}
+            {notificationsEnabled ? 'Alerts ON' : 'Alerts OFF'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -113,7 +113,7 @@ const JourneyCompanionCard: React.FC<CompanionProps> = ({
 
         {isCompleted && (
           <View style={styles.completedBody}>
-            <Text style={styles.completedIcon}>🎯</Text>
+            <Text style={styles.completedIcon}>✓</Text>
             <Text style={styles.completedText}>You have reached your destination!</Text>
             <Text style={styles.completedSub}>Thank you for traveling with Namma Metro.</Text>
           </View>
@@ -159,7 +159,7 @@ const ConnectingTrainsPanel: React.FC<ConnectingTrainsPanelProps> = ({ segments 
   if (segments.length < 2 || trains.length === 0) return null;
 
   const connectingSeg = segments[1];
-  const lineColor = connectingSeg.line === 'green' ? colors.green[500] : colors.purple[600];
+  const lineColor = connectingSeg.line === 'green' ? colors.green[500] : connectingSeg.line === 'yellow' ? colors.status.warning : colors.purple[600];
 
   return (
     <View style={connectingStyles.panel}>
@@ -267,7 +267,7 @@ export default function TicketDetailsScreen() {
               const arrStr = seg.arrival_time || '--:--';
               const depFmt = depStr.includes('T') ? depStr.split('T')[1]?.substring(0, 5) : depStr;
               const arrFmt = arrStr.includes('T') ? arrStr.split('T')[1]?.substring(0, 5) : arrStr;
-              const lineColor = seg.line.toLowerCase() === 'green' ? colors.green[500] : colors.purple[500];
+              const lineColor = seg.line.toLowerCase() === 'green' ? colors.green[500] : seg.line.toLowerCase() === 'yellow' ? colors.status.warning : colors.purple[500];
 
               return (
                 <React.Fragment key={idx}>
@@ -294,7 +294,7 @@ export default function TicketDetailsScreen() {
                   
                   {idx < (ticketData.route.segments.length - 1) && (
                     <View style={styles.interchangeDivider}>
-                      <Text style={styles.segmentInterchangeIcon}>🔄</Text>
+                      <Text style={styles.segmentInterchangeIcon}>⇄</Text>
                       <Text style={styles.segmentInterchangeText}>Change here for {ticketData.route.segments[idx+1].line} Line</Text>
                     </View>
                   )}
@@ -305,7 +305,7 @@ export default function TicketDetailsScreen() {
 
           {/* Passenger count */}
           <View style={styles.passengerInfo}>
-            <Text style={styles.passengerIcon}>👥</Text>
+            <Text style={styles.passengerIcon}>Passengers:</Text>
             <Text style={styles.passengerCount}>{ticketData.passengers}</Text>
           </View>
 

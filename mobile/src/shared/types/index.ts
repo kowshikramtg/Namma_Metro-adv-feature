@@ -8,7 +8,7 @@
 export interface Station {
   id: string;
   name: string;
-  line: 'purple' | 'green' | 'both';
+  line: 'purple' | 'green' | 'yellow' | 'both' | 'multiple';
   order: number;
   is_interchange: boolean;
 }

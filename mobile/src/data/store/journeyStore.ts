@@ -97,7 +97,12 @@ function computeLocalLiveStatus(segments: RouteSegment[]): LiveStatus | null {
   return {
     progress,
     current_segment: currentSegIdx,
-    segment_progress: 0.5,
+    segment_progress: (() => {
+      const segDep = timeStrToMinutes(currentSeg.departure_time);
+      const segArr = timeStrToMinutes(currentSeg.arrival_time);
+      if (segDep === null || segArr === null || segArr === segDep) return 0.5;
+      return Math.min(1, Math.max(0, (now - segDep) / (segArr - segDep)));
+    })(),
     current_station:  currentSeg.from_station,
     next_station:     currentSeg.to_station,
     elapsed_minutes:  elapsed,
@@ -155,12 +160,14 @@ function computeLocalInstructions(segments: RouteSegment[]): JourneyInstruction[
       });
     }
 
-    // In transit — first segment
-    if (!isLast && now >= depMin && now < arrMin) {
+    // In transit — first segment (or single-segment journey)
+    if (isFirst && now >= depMin && now < arrMin) {
       list.push({
-        stage: 'IN_FIRST_TRAIN',
+        stage: isLast ? 'IN_CONNECTING_TRAIN' : 'IN_FIRST_TRAIN',
         title: `On Board — ${lineName} Line`,
-        description: `Traveling to Majestic (interchange). Arriving at ${seg.arrival_time}. Prepare to change trains.`,
+        description: isLast
+          ? `Traveling to ${seg.to_station}. Arriving at ${seg.arrival_time}.`
+          : `Traveling to Majestic (interchange). Arriving at ${seg.arrival_time}. Prepare to change trains.`,
         eta_minutes: arrMin - now,
         scheduled_time: seg.arrival_iso || new Date().toISOString(),
         line: seg.line,
@@ -356,7 +363,7 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
           liveStatus:   computeLocalLiveStatus(currentSegs),
           instructions: computeLocalInstructions(currentSegs),
         });
-      }, 30_000);
+      }, 10_000);
 
       return;
     }
