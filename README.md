@@ -2,7 +2,7 @@
 
 # Namma Metro — Journey Companion
 
-A complete, modern, full-stack application designed to provide commuters with an intelligent and seamless metro travel experience. It features Dijkstra-based route planning, real-time schedule computation, and live journey tracking with context-aware notifications.
+A complete, modern, full-stack application designed to provide commuters with an intelligent and seamless metro travel experience. It features route planning, real-time schedule computation, and live journey tracking with context-aware notifications.
 
 <img src="https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
 <img src="https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white" />
